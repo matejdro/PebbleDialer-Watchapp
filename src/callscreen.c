@@ -223,6 +223,16 @@ void callscreen_second()
 	}
 }
 
+void callscreen_unload(Window* me)
+{
+	heap_bitmap_deinit(&buttonAnswer);
+	heap_bitmap_deinit(&buttonEndCall);
+	heap_bitmap_deinit(&buttonMicOff);
+	heap_bitmap_deinit(&buttonMicOn);
+	heap_bitmap_deinit(&buttonSpeakerOn);
+	heap_bitmap_deinit(&buttonSpeakerOff);
+}
+
 void callscreen_init()
 {
 	elapsedTime = 0;
@@ -237,6 +247,8 @@ void callscreen_init()
 
 	window_set_window_handlers(&callscreen, (WindowHandlers) {
 		.appear = (WindowHandler)callscreen_appears,
+		.unload = (WindowHandler)callscreen_unload,
+
 	});
 
 	window_stack_push(&callscreen, false);

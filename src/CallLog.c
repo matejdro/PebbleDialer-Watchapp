@@ -347,6 +347,13 @@ void cl_window_load(Window *me) {
 	pickedMode = 0;
 }
 
+void cl_window_unload(Window *me) {
+	heap_bitmap_deinit(&incomingCall);
+	heap_bitmap_deinit(&outgoingCall);
+	heap_bitmap_deinit(&missedCall);
+
+}
+
 void init_call_log_window()
 {
 	heap_bitmap_init(&incomingCall, RESOURCE_ID_INCOMING_CALL);
@@ -375,7 +382,9 @@ void init_call_log_window()
 	layer_add_child(topLayer, (Layer*) &logMenuLayer);
 
 	window_set_window_handlers(&callLogWindow, (WindowHandlers){
-		.appear = cl_window_load
+		.appear = cl_window_load,
+		.unload = cl_window_unload
+
 	});
 
 	window_stack_push(&callLogWindow, true /* Animated */);
