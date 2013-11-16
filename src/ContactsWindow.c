@@ -1,10 +1,9 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
+#include "pebble.h"
 #include "pebble_fonts.h"
 #include "Dialer2.h"
 #include "util.h"
 
-Window contactsWindow;
+Window* contactsWindow;
 
 uint16_t numMaxContacts = 10;
 
@@ -16,7 +15,7 @@ int16_t pickedContact = -1;
 bool sending = false;
 char cw_contactNames[21][21] = {};
 
-MenuLayer contactsMenuLayer;
+MenuLayer* contactsMenuLayer;
 
 int8_t cw_convertToArrayPos(uint16_t index)
 {
@@ -125,11 +124,10 @@ uint8_t cw_getEmptySpacesUp()
 void contacts_requestContacts(uint16_t pos)
 {
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 	dict_write_uint8(iterator, 0, 5);
 	dict_write_uint16(iterator, 1, pos);
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
@@ -146,11 +144,10 @@ void contacts_sendPickedContact(int16_t pos)
 	}
 
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 	dict_write_uint8(iterator, 0, 6);
 	dict_write_int16(iterator, 1, pos);
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
@@ -216,7 +213,7 @@ void cw_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex
 //			graphics_text_draw(ctx, itoa(centerIndex), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 //		}
 //	else
-		graphics_text_draw(ctx, cw_getContactName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+		graphics_draw_text(ctx, cw_getContactName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 
 
@@ -231,11 +228,14 @@ void contacts_receivedContactNames(DictionaryIterator* data)
 	for (int i = 0; i < 3; i++)
 	{
 		uint16_t groupPos = offset + i;
+		if (groupPos >= numMaxContacts)
+			break;
+
 
 		cw_setContactName(groupPos, dict_find(data, 3 + i)->value->cstring);
 	}
 
-	menu_layer_reload_data(&contactsMenuLayer);
+	menu_layer_reload_data(contactsMenuLayer);
 	sending = false;
 
 	if (pickedContact >= 0)
@@ -266,14 +266,14 @@ void contacts_window_load(Window *me) {
 
 void init_contacts_window(char* names)
 {
-	window_init(&contactsWindow, "Contacts");
+	contactsWindow = window_create();
 
-	Layer* topLayer = window_get_root_layer(&contactsWindow);
+	Layer* topLayer = window_get_root_layer(contactsWindow);
 
-	menu_layer_init(&contactsMenuLayer, GRect(0, 0, 144, 168 - 16));
+	contactsMenuLayer = menu_layer_create(GRect(0, 0, 144, 168 - 16));
 
 	// Set all the callbacks for the menu layer
-	menu_layer_set_callbacks(&contactsMenuLayer, NULL, (MenuLayerCallbacks){
+	menu_layer_set_callbacks(contactsMenuLayer, NULL, (MenuLayerCallbacks){
 		.get_num_sections = cw_menu_get_num_sections_callback,
 				.get_num_rows = cw_menu_get_num_rows_callback,
 				.get_cell_height = cw_menu_get_row_height_callback,
@@ -288,14 +288,14 @@ void init_contacts_window(char* names)
 		contacts_requestContacts(6);
 	}
 
-	menu_layer_set_click_config_onto_window(&contactsMenuLayer, &contactsWindow);
+	menu_layer_set_click_config_onto_window(contactsMenuLayer, contactsWindow);
 
-	layer_add_child(topLayer, (Layer*) &contactsMenuLayer);
+	layer_add_child(topLayer, (Layer*) contactsMenuLayer);
 
-	window_set_window_handlers(&contactsWindow, (WindowHandlers){
+	window_set_window_handlers(contactsWindow, (WindowHandlers){
 		.appear = contacts_window_load,
 	});
 
-	window_stack_push(&contactsWindow, names == NULL /* Animated */);
+	window_stack_push(contactsWindow, names == NULL /* Animated */);
 }
 

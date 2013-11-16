@@ -1,0 +1,82 @@
+{
+  "uuid": "158a074d-85ce-43d2-ab7d-14416ddc1058",
+  "shortName": "Pebble Dialer",
+  "longName": "Pebble Dialer",
+  "companyName": "matejdro",
+  "versionCode": 2,
+  "versionLabel": "2.0.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {},
+  "resources": {
+    "media": [
+      {
+        "menuIcon": true,
+        "type": "png",
+        "name": "ICON",
+        "file": "icon.png"
+      },
+      {
+        "type": "png",
+        "name": "ANSWER",
+        "file": "answer.png"
+      },
+      {
+        "type": "png",
+        "name": "ENDCALL",
+        "file": "endcall.png"
+      },
+      {
+        "type": "png",
+        "name": "MIC_OFF",
+        "file": "mic_off.png"
+      },
+      {
+        "type": "png",
+        "name": "MIC_ON",
+        "file": "micon.png"
+      },
+      {
+        "type": "png",
+        "name": "SPEAKER_ON",
+        "file": "speakeron.png"
+      },
+      {
+        "type": "png",
+        "name": "SPEAKER_OFF",
+        "file": "speakeroff.png"
+      },
+      {
+        "type": "png",
+        "name": "CALL_HISTORY",
+        "file": "callhistory.png"
+      },
+      {
+        "type": "png",
+        "name": "CONTACTS",
+        "file": "contacts.png"
+      },
+      {
+        "type": "png",
+        "name": "CONTACT_GROUP",
+        "file": "contactgroup.png"
+      },
+      {
+        "type": "png",
+        "name": "INCOMING_CALL",
+        "file": "incomingcall.png"
+      },
+      {
+        "type": "png",
+        "name": "OUTGOING_CALL",
+        "file": "outgoingcall.png"
+      },
+      {
+        "type": "png",
+        "name": "MISSED_CALL",
+        "file": "missedcall.png"
+      }
+    ]
+  }
+}

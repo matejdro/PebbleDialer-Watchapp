@@ -1,5 +1,3 @@
-#include <pebble_app.h>
-
 char *itoa(int num)
 {
 	static char buff[20] = {};

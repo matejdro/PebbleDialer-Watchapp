@@ -1,17 +1,16 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
+#include "pebble.h"
 #include "pebble_fonts.h"
 #include "Dialer2.h"
 #include "ContactsWindow.h"
 
-Window filterWindow;
+Window* filterWindow;
 
 int numOfContacts = 0;
 
 char contactNames[7][21] = {};
 
-TextLayer filterLoadingLayer;
-MenuLayer filterMenuLayer;
+TextLayer* filterLoadingLayer;
+MenuLayer* filterMenuLayer;
 
 bool loading = true;
 
@@ -32,7 +31,7 @@ int16_t menu_get_row_height_callback(MenuLayer *me,  MenuIndex *cell_index, void
 
 void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
 	graphics_context_set_text_color(ctx, GColorBlack);
-	graphics_text_draw(ctx, contactNames[cell_index->row], fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+	graphics_draw_text(ctx, contactNames[cell_index->row], fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 
 
@@ -42,19 +41,21 @@ void menu_select_callback(MenuLayer *me, MenuIndex *cell_index, void *data) {
 
 void filter_show_loading()
 {
-	layer_set_hidden((Layer *) &filterLoadingLayer, false);
-	layer_set_hidden((Layer *) &filterMenuLayer, true);
+	layer_set_hidden((Layer *) filterLoadingLayer, false);
+	layer_set_hidden((Layer *) filterMenuLayer, true);
 	loading = true;
 }
 
 void filter_show_menu()
 {
+	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "show menu");
+
 	MenuIndex invalidIndex;
 	invalidIndex.row = -1;
 	invalidIndex.section = -1;
-	menu_layer_set_selected_index(&filterMenuLayer, invalidIndex, MenuRowAlignNone, false);
-	layer_set_hidden((Layer *) &filterLoadingLayer, true);
-	layer_set_hidden((Layer *) &filterMenuLayer, false);
+	menu_layer_set_selected_index(filterMenuLayer, invalidIndex, MenuRowAlignNone, false);
+	layer_set_hidden((Layer *) filterLoadingLayer, true);
+	layer_set_hidden((Layer *) filterMenuLayer, false);
 	loading = false;
 }
 
@@ -66,11 +67,10 @@ void filter_requestContacts(uint8_t pos)
 	}
 
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 	dict_write_uint8(iterator, 0, 3);
 	dict_write_uint8(iterator, 1, pos);
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
@@ -78,7 +78,7 @@ void filter_requestContacts(uint8_t pos)
 
 void filter_receivedContactNames(DictionaryIterator* data)
 {
-	uint8_t offset = dict_find(data, 1)->value->uint16;
+	uint16_t offset = dict_find(data, 1)->value->uint16;
 	numOfContacts = dict_find(data, 2)->value->uint16;
 	for (int i = 0; i < 3; i++)
 	{
@@ -90,7 +90,7 @@ void filter_receivedContactNames(DictionaryIterator* data)
 	}
 	filter_requestContacts(offset + 3);
 
-	menu_layer_reload_data(&filterMenuLayer);
+	menu_layer_reload_data(filterMenuLayer);
 
 	if (loading)
 		filter_show_menu();
@@ -98,6 +98,8 @@ void filter_receivedContactNames(DictionaryIterator* data)
 
 void filter_data_received(int packetId, DictionaryIterator* data)
 {
+	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "got packet %d", packetId);
+
 	switch (packetId)
 	{
 	case 2:
@@ -118,13 +120,12 @@ void filter(int button)
 	memset(contactNames, 0, 20 * 7);
 
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 
 	dict_write_uint8(iterator, 0, 4);
 	dict_write_uint8(iterator, 1, button);
 
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
@@ -157,17 +158,12 @@ void filter_dummy_release_handler(ClickRecognizerRef recognizer, Window *window)
 }
 
 
-void filter_config_provider(ClickConfig **config, Window *window) {
-	config[BUTTON_ID_UP]->click.handler=(ClickHandler) filter_up_button;
+void filter_config_provider(void* context) {
+	window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) filter_up_button);
+	window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) filter_down_button);
+	window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) filter_center_button);
 
-	config[BUTTON_ID_DOWN]->click.handler=(ClickHandler) filter_down_button;
-
-	config[BUTTON_ID_SELECT]->click.handler=(ClickHandler) filter_center_button;
-
-	config[BUTTON_ID_SELECT]->long_click.handler=(ClickHandler) filter_center_long;
-	config[BUTTON_ID_SELECT]->long_click.release_handler = (ClickHandler) filter_dummy_release_handler;
-	config[BUTTON_ID_SELECT]->long_click.delay_ms=500;
-
+	window_long_click_subscribe(BUTTON_ID_SELECT, 500, (ClickHandler) filter_center_long, (ClickHandler) filter_dummy_release_handler);
 }
 
 void filter_window_load(Window *me) {
@@ -176,11 +172,10 @@ void filter_window_load(Window *me) {
 	filter_show_loading();
 
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 	dict_write_uint8(iterator, 0, 3);
 	dict_write_uint8(iterator, 1, 0);
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
@@ -188,22 +183,22 @@ void filter_window_load(Window *me) {
 
 void init_filter_window()
 {
-	window_init(&filterWindow, "Filtering");
+	filterWindow = window_create();
 
-	Layer* topLayer = window_get_root_layer(&filterWindow);
+	Layer* topLayer = window_get_root_layer(filterWindow);
 
-	text_layer_init(&filterLoadingLayer, GRect(0, 10, 144, 168 - 16));
-	text_layer_set_text_alignment(&filterLoadingLayer, GTextAlignmentCenter);
-	text_layer_set_text(&filterLoadingLayer, "Loading...");
-	text_layer_set_font(&filterLoadingLayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	layer_add_child(topLayer, (Layer*) &filterLoadingLayer);
+	filterLoadingLayer = text_layer_create(GRect(0, 10, 144, 168 - 16));
+	text_layer_set_text_alignment(filterLoadingLayer, GTextAlignmentCenter);
+	text_layer_set_text(filterLoadingLayer, "Loading...");
+	text_layer_set_font(filterLoadingLayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	layer_add_child(topLayer, (Layer*) filterLoadingLayer);
 
-	window_set_click_config_provider(&filterWindow, (ClickConfigProvider) filter_config_provider);
+	window_set_click_config_provider(filterWindow, (ClickConfigProvider) filter_config_provider);
 
-	menu_layer_init(&filterMenuLayer, GRect(0, 0, 144, 168 - 16));
+	filterMenuLayer = menu_layer_create(GRect(0, 0, 144, 168 - 16));
 
 	// Set all the callbacks for the menu layer
-	menu_layer_set_callbacks(&filterMenuLayer, NULL, (MenuLayerCallbacks){
+	menu_layer_set_callbacks(filterMenuLayer, NULL, (MenuLayerCallbacks){
 		.get_num_sections = menu_get_num_sections_callback,
 				.get_num_rows = menu_get_num_rows_callback,
 				.get_cell_height = menu_get_row_height_callback,
@@ -211,12 +206,12 @@ void init_filter_window()
 				.select_click = menu_select_callback,
 	});
 
-	layer_add_child(topLayer, (Layer*) &filterMenuLayer);
+	layer_add_child(topLayer, (Layer*) filterMenuLayer);
 
-	window_set_window_handlers(&filterWindow, (WindowHandlers){
+	window_set_window_handlers(filterWindow, (WindowHandlers){
 		.appear = filter_window_load,
 	});
 
-	window_stack_push(&filterWindow, true /* Animated */);
+	window_stack_push(filterWindow, true /* Animated */);
 }
 

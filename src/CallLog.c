@@ -1,10 +1,9 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
+#include "pebble.h"
 #include "pebble_fonts.h"
 #include "Dialer2.h"
 #include "util.h"
 
-Window callLogWindow;
+Window* callLogWindow;
 
 uint16_t numEntries = 10;
 
@@ -20,11 +19,11 @@ char cl_dates[21][21] = {};
 uint8_t cl_types[21] = {};
 char cl_numbers[21][21] = {};
 
-MenuLayer logMenuLayer;
+MenuLayer* logMenuLayer;
 
-HeapBitmap incomingCall;
-HeapBitmap outgoingCall;
-HeapBitmap missedCall;
+GBitmap* incomingCall;
+GBitmap* outgoingCall;
+GBitmap* missedCall;
 
 
 int8_t cl_convertToArrayPos(uint16_t index)
@@ -192,11 +191,10 @@ uint8_t cl_getEmptySpacesUp()
 void cl_requestNumbers(uint16_t pos)
 {
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 	dict_write_uint8(iterator, 0, 10);
 	dict_write_uint16(iterator, 1, pos);
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
@@ -214,12 +212,11 @@ void cl_sendpickedEntry(int16_t pos, uint8_t mode)
 	}
 
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 	dict_write_uint8(iterator, 0, 11);
 	dict_write_int16(iterator, 1, pos);
 	dict_write_uint8(iterator, 2, mode);
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
@@ -270,22 +267,22 @@ void cl_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex
 
 	graphics_context_set_text_color(ctx, GColorBlack);
 
-	graphics_text_draw(ctx, cl_getName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(35, 0, 144 - 30, 20), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-	graphics_text_draw(ctx, cl_getDate(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(35, 20, 144 - 30, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+	graphics_draw_text(ctx, cl_getName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(35, 0, 144 - 30, 20), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+	graphics_draw_text(ctx, cl_getDate(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(35, 20, 144 - 30, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 	if (hasNumberType)
-		graphics_text_draw(ctx, cl_getNumber(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), GRect(35, 35, 144 - 30, 20), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+		graphics_draw_text(ctx, cl_getNumber(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), GRect(35, 35, 144 - 30, 20), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
 	GBitmap* image;
 	switch (cl_getType(cell_index->row))
 	{
 	case 1:
-		image = &incomingCall.bmp;
+		image = incomingCall;
 		break;
 	case 2:
-		image = &outgoingCall.bmp;
+		image = outgoingCall;
 		break;
 	default:
-		image = &missedCall.bmp;
+		image = missedCall;
 		break;
 	}
 
@@ -316,7 +313,7 @@ void cl_receivedEntries(DictionaryIterator* data)
 	cl_setDate(offset, dict_find(data, 5)->value->cstring);
 	cl_setNumber(offset, dict_find(data, 6)->value->cstring);
 
-	menu_layer_reload_data(&logMenuLayer);
+	menu_layer_reload_data(logMenuLayer);
 	cl_sending = false;
 
 	if (pickedEntry >= 0)
@@ -348,26 +345,26 @@ void cl_window_load(Window *me) {
 }
 
 void cl_window_unload(Window *me) {
-	heap_bitmap_deinit(&incomingCall);
-	heap_bitmap_deinit(&outgoingCall);
-	heap_bitmap_deinit(&missedCall);
+	gbitmap_destroy(incomingCall);
+	gbitmap_destroy(outgoingCall);
+	gbitmap_destroy(missedCall);
 
 }
 
 void init_call_log_window()
 {
-	heap_bitmap_init(&incomingCall, RESOURCE_ID_INCOMING_CALL);
-	heap_bitmap_init(&outgoingCall, RESOURCE_ID_OUTGOING_CALL);
-	heap_bitmap_init(&missedCall, RESOURCE_ID_MISSED_CALL);
+	incomingCall = gbitmap_create_with_resource(RESOURCE_ID_INCOMING_CALL);
+	outgoingCall = gbitmap_create_with_resource(RESOURCE_ID_OUTGOING_CALL);
+	missedCall = gbitmap_create_with_resource(RESOURCE_ID_MISSED_CALL);
 
-	window_init(&callLogWindow, "Numbers");
+	callLogWindow = window_create();
 
-	Layer* topLayer = window_get_root_layer(&callLogWindow);
+	Layer* topLayer = window_get_root_layer(callLogWindow);
 
-	menu_layer_init(&logMenuLayer, GRect(0, 0, 144, 168 - 16));
+	logMenuLayer = menu_layer_create(GRect(0, 0, 144, 168 - 16));
 
 	// Set all the callbacks for the menu layer
-	menu_layer_set_callbacks(&logMenuLayer, NULL, (MenuLayerCallbacks){
+	menu_layer_set_callbacks(logMenuLayer, NULL, (MenuLayerCallbacks){
 		.get_num_sections = cl_menu_get_num_sections_callback,
 				.get_num_rows = cl_menu_get_num_rows_callback,
 				.get_cell_height = cl_menu_get_row_height_callback,
@@ -377,16 +374,16 @@ void init_call_log_window()
 				.selection_changed = cl_menu_pos_changed
 	});
 
-	menu_layer_set_click_config_onto_window(&logMenuLayer, &callLogWindow);
+	menu_layer_set_click_config_onto_window(logMenuLayer, callLogWindow);
 
-	layer_add_child(topLayer, (Layer*) &logMenuLayer);
+	layer_add_child(topLayer, (Layer*) logMenuLayer);
 
-	window_set_window_handlers(&callLogWindow, (WindowHandlers){
+	window_set_window_handlers(callLogWindow, (WindowHandlers){
 		.appear = cl_window_load,
 		.unload = cl_window_unload
 
 	});
 
-	window_stack_push(&callLogWindow, true /* Animated */);
+	window_stack_push(callLogWindow, true /* Animated */);
 }
 

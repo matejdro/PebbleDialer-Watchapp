@@ -1,0 +1,8 @@
+
+# Ignore build generated files
+build
+PebbleDialer
+
+waf*
+*wscript
+.lock*

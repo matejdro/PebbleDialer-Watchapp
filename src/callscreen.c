@@ -1,25 +1,24 @@
 #include "pebble_fonts.h"
-#include "pebble_os.h"
-#include "pebble_app.h"
+#include "pebble.h"
 #include "util.h"
 
-Window callscreen;
+Window* callscreen;
 
-TextLayer title;
+TextLayer* title;
 char timerText[6];
 
-TextLayer callerName;
-TextLayer callerNumType;
-TextLayer callerNumber;
+TextLayer* callerName;
+TextLayer* callerNumType;
+TextLayer* callerNumber;
 
-HeapBitmap buttonMicOn;
-HeapBitmap buttonMicOff;
-HeapBitmap buttonAnswer;
-HeapBitmap buttonEndCall;
-HeapBitmap buttonSpeakerOn;
-HeapBitmap buttonSpeakerOff;
+GBitmap* buttonMicOn;
+GBitmap* buttonMicOff;
+GBitmap* buttonAnswer;
+GBitmap* buttonEndCall;
+GBitmap* buttonSpeakerOn;
+GBitmap* buttonSpeakerOff;
 
-ActionBarLayer actionBar;
+ActionBarLayer* actionBar;
 
 bool callEstablished;
 uint16_t elapsedTime = 0;
@@ -67,7 +66,7 @@ void updateTimer()
 	timerText[2] = ':';
 	convertTwoNumber(seconds, timerText, 3);
 
-	text_layer_set_text(&title, timerText);
+	text_layer_set_text(title, timerText);
 
 }
 
@@ -75,19 +74,19 @@ void renderTextFields()
 {
 	if (nameExist)
 	{
-		text_layer_set_text(&callerName, callerNameText);
-		text_layer_set_text(&callerNumType, callerNumTypeText);
-		text_layer_set_text(&callerNumber, callerNumberText);
+		text_layer_set_text(callerName, callerNameText);
+		text_layer_set_text(callerNumType, callerNumTypeText);
+		text_layer_set_text(callerNumber, callerNumberText);
 
-		layer_set_hidden((Layer * ) &callerNumType, false);
-		layer_set_hidden((Layer * ) &callerNumber, false);
+		layer_set_hidden((Layer * ) callerNumType, false);
+		layer_set_hidden((Layer * ) callerNumber, false);
 	}
 	else
 	{
-		text_layer_set_text(&callerName, callerNumberText);
+		text_layer_set_text(callerName, callerNumberText);
 
-		layer_set_hidden((Layer * ) &callerNumType, true);
-		layer_set_hidden((Layer * ) &callerNumber, true);
+		layer_set_hidden((Layer * ) callerNumType, true);
+		layer_set_hidden((Layer * ) callerNumber, true);
 	}
 
 	if (callEstablished)
@@ -96,7 +95,7 @@ void renderTextFields()
 	}
 	else
 	{
-		text_layer_set_text(&title, "Incoming Call");
+		text_layer_set_text(title, "Incoming Call");
 	}
 }
 
@@ -104,28 +103,27 @@ void renderActionBar()
 {
 	if (callEstablished)
 	{
-		action_bar_layer_set_icon(&actionBar, BUTTON_ID_UP, micOn ? &buttonMicOn.bmp : &buttonMicOff.bmp);
-		action_bar_layer_set_icon(&actionBar, BUTTON_ID_SELECT, speakerOn ? &buttonSpeakerOn.bmp : &buttonSpeakerOff.bmp);
-		action_bar_layer_set_icon(&actionBar, BUTTON_ID_DOWN, &buttonEndCall.bmp);
+		action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, micOn ? buttonMicOn : buttonMicOff);
+		action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, speakerOn ? buttonSpeakerOn : buttonSpeakerOff);
+		action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, buttonEndCall);
 	}
 	else
 	{
-		action_bar_layer_set_icon(&actionBar, BUTTON_ID_UP, speakerOn ? &buttonSpeakerOn.bmp : &buttonSpeakerOff.bmp);
-		action_bar_layer_set_icon(&actionBar, BUTTON_ID_SELECT, &buttonAnswer.bmp);
-		action_bar_layer_set_icon(&actionBar, BUTTON_ID_DOWN, &buttonEndCall.bmp);
+		action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, speakerOn ? buttonSpeakerOn : buttonSpeakerOff);
+		action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, buttonAnswer);
+		action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, buttonEndCall);
 	}
 }
 
 void sendAction(int buttonId)
 {
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 
 	dict_write_uint8(iterator, 0, 7);
 	dict_write_uint8(iterator, 1, buttonId);
 
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	busy = true;
 }
@@ -167,12 +165,10 @@ void down_button_callscreen(ClickRecognizerRef recognizer, Window *window)
 	sendAction(2);
 }
 
-void config_provider_callscreen(ClickConfig **config, Window *window) {
-	config[BUTTON_ID_UP]->click.handler=(ClickHandler) up_button_callscreen;
-
-	config[BUTTON_ID_DOWN]->click.handler=(ClickHandler) down_button_callscreen;
-
-	config[BUTTON_ID_SELECT]->click.handler=(ClickHandler) center_button_callscreen;
+void config_provider_callscreen(void* context) {
+	window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) up_button_callscreen);
+	window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) down_button_callscreen);
+	window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) center_button_callscreen);
 }
 
 void callscreen_received_data(uint8_t id, DictionaryIterator *received) {
@@ -205,7 +201,7 @@ void callscreen_data_delivered(DictionaryIterator *sent) {
 
 void callscreen_appears(Window *window)
 {
-	action_bar_layer_add_to_window(&actionBar, &callscreen);
+	action_bar_layer_add_to_window(actionBar, callscreen);
 }
 
 
@@ -225,12 +221,12 @@ void callscreen_second()
 
 void callscreen_unload(Window* me)
 {
-	heap_bitmap_deinit(&buttonAnswer);
-	heap_bitmap_deinit(&buttonEndCall);
-	heap_bitmap_deinit(&buttonMicOff);
-	heap_bitmap_deinit(&buttonMicOn);
-	heap_bitmap_deinit(&buttonSpeakerOn);
-	heap_bitmap_deinit(&buttonSpeakerOff);
+	gbitmap_destroy(buttonAnswer);
+	gbitmap_destroy(buttonEndCall);
+	gbitmap_destroy(buttonMicOff);
+	gbitmap_destroy(buttonMicOn);
+	gbitmap_destroy(buttonSpeakerOn);
+	gbitmap_destroy(buttonSpeakerOff);
 }
 
 void callscreen_init()
@@ -243,49 +239,48 @@ void callscreen_init()
 
 	busy = false;
 
-	window_init(&callscreen, "Call");
+	callscreen = window_create();
 
-	window_set_window_handlers(&callscreen, (WindowHandlers) {
+	window_set_window_handlers(callscreen, (WindowHandlers) {
 		.appear = (WindowHandler)callscreen_appears,
 		.unload = (WindowHandler)callscreen_unload,
 
 	});
 
-	window_stack_push(&callscreen, false);
+	Layer* topLayer = window_get_root_layer(callscreen);
 
-	Layer* topLayer = window_get_root_layer(&callscreen);
+	title = text_layer_create(GRect(5,0,144 - 30,30));
+	text_layer_set_font(title, fonts_get_system_font(FONT_KEY_GOTHIC_24));
+	text_layer_set_text_alignment(title, GTextAlignmentCenter);
+	layer_add_child(topLayer, (Layer *)title);
 
-	text_layer_init(&title, GRect(5,0,144 - 30,30));
-	text_layer_set_font(&title, fonts_get_system_font(FONT_KEY_GOTHIC_24));
-	text_layer_set_text_alignment(&title, GTextAlignmentCenter);
-	layer_add_child(topLayer, (Layer *)&title);
+	callerName = text_layer_create(GRect(5,40,144 - 30,60));
+	text_layer_set_font(callerName, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_text_alignment(callerName, GTextAlignmentCenter);
+	layer_add_child(topLayer, (Layer *)callerName);
 
-	text_layer_init(&callerName, GRect(5,40,144 - 30,60));
-	text_layer_set_font(&callerName, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	text_layer_set_text_alignment(&callerName, GTextAlignmentCenter);
-	layer_add_child(topLayer, (Layer *)&callerName);
+	callerNumType = text_layer_create(GRect(5,100,144 - 30,20));
+	text_layer_set_font(callerNumType, fonts_get_system_font(FONT_KEY_GOTHIC_18));
+	text_layer_set_text_alignment(callerNumType, GTextAlignmentCenter);
+	layer_add_child(topLayer, (Layer *)callerNumType);
 
-	text_layer_init(&callerNumType, GRect(5,100,144 - 30,20));
-	text_layer_set_font(&callerNumType, fonts_get_system_font(FONT_KEY_GOTHIC_18));
-	text_layer_set_text_alignment(&callerNumType, GTextAlignmentCenter);
-	layer_add_child(topLayer, (Layer *)&callerNumType);
+	callerNumber = text_layer_create(GRect(5,122,144 - 30,30));
+	text_layer_set_font(callerNumber, fonts_get_system_font(FONT_KEY_GOTHIC_18));
+	text_layer_set_text_alignment(callerNumber, GTextAlignmentCenter);
+	layer_add_child(topLayer, (Layer *)callerNumber);
 
-	text_layer_init(&callerNumber, GRect(5,122,144 - 30,30));
-	text_layer_set_font(&callerNumber, fonts_get_system_font(FONT_KEY_GOTHIC_18));
-	text_layer_set_text_alignment(&callerNumber, GTextAlignmentCenter);
-	layer_add_child(topLayer, (Layer *)&callerNumber);
+	buttonAnswer = gbitmap_create_with_resource(RESOURCE_ID_ANSWER);
+	buttonEndCall = gbitmap_create_with_resource(RESOURCE_ID_ENDCALL);
+	buttonMicOff = gbitmap_create_with_resource(RESOURCE_ID_MIC_OFF);
+	buttonMicOn = gbitmap_create_with_resource(RESOURCE_ID_MIC_ON);
+	buttonSpeakerOn = gbitmap_create_with_resource(RESOURCE_ID_SPEAKER_ON);
+	buttonSpeakerOff = gbitmap_create_with_resource(RESOURCE_ID_SPEAKER_OFF);
 
-	resource_init_current_app(&VERSION);
-	heap_bitmap_init(&buttonAnswer, RESOURCE_ID_ANSWER);
-	heap_bitmap_init(&buttonEndCall, RESOURCE_ID_ENDCALL);
-	heap_bitmap_init(&buttonMicOff, RESOURCE_ID_MIC_OFF);
-	heap_bitmap_init(&buttonMicOn, RESOURCE_ID_MIC_ON);
-	heap_bitmap_init(&buttonSpeakerOn, RESOURCE_ID_SPEAKER_ON);
-	heap_bitmap_init(&buttonSpeakerOff, RESOURCE_ID_SPEAKER_OFF);
+	actionBar = action_bar_layer_create();
+	action_bar_layer_set_click_config_provider(actionBar, (ClickConfigProvider) config_provider_callscreen);
 
-	action_bar_layer_init(&actionBar);
-	action_bar_layer_set_click_config_provider(&actionBar, (ClickConfigProvider) &config_provider_callscreen);
+	window_stack_push(callscreen, false);
 
-	renderActionBar();
-	renderTextFields();
+	//renderActionBar();
+	//renderTextFields();
 }

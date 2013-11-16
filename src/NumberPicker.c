@@ -1,10 +1,9 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
+#include "pebble.h"
 #include "pebble_fonts.h"
 #include "Dialer2.h"
 #include "util.h"
 
-Window numberPickerWindow;
+Window* numberPickerWindow;
 
 uint16_t numMaxNumbers = 10;
 
@@ -17,7 +16,7 @@ bool np_sending = false;
 char np_numberTypes[21][16] = {};
 char np_numbers[21][16] = {};
 
-MenuLayer numbersMenuLayer;
+MenuLayer* numbersMenuLayer;
 
 int8_t np_convertToArrayPos(uint16_t index)
 {
@@ -145,11 +144,10 @@ uint8_t np_getEmptySpacesUp()
 void np_requestNumbers(uint16_t pos)
 {
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 	dict_write_uint8(iterator, 0, 8);
 	dict_write_uint16(iterator, 1, pos);
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
@@ -166,11 +164,10 @@ void np_sendPickedNumber(int16_t pos)
 	}
 
 	DictionaryIterator *iterator;
-	app_message_out_get(&iterator);
+	app_message_outbox_begin(&iterator);
 	dict_write_uint8(iterator, 0, 9);
 	dict_write_int16(iterator, 1, pos);
-	app_message_out_send();
-	app_message_out_release();
+	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
@@ -259,7 +256,7 @@ void np_receivedNumbers(DictionaryIterator* data)
 		np_setNumber(groupPos, dict_find(data, 5 + i)->value->cstring);
 	}
 
-	menu_layer_reload_data(&numbersMenuLayer);
+	menu_layer_reload_data(numbersMenuLayer);
 	np_sending = false;
 
 	if (pickedNumber >= 0)
@@ -291,14 +288,14 @@ void np_window_load(Window *me) {
 
 void init_number_picker_window()
 {
-	window_init(&numberPickerWindow, "Numbers");
+	numberPickerWindow = window_create();
 
-	Layer* topLayer = window_get_root_layer(&numberPickerWindow);
+	Layer* topLayer = window_get_root_layer(numberPickerWindow);
 
-	menu_layer_init(&numbersMenuLayer, GRect(0, 0, 144, 168 - 16));
+	numbersMenuLayer = menu_layer_create(GRect(0, 0, 144, 168 - 16));
 
 	// Set all the callbacks for the menu layer
-	menu_layer_set_callbacks(&numbersMenuLayer, NULL, (MenuLayerCallbacks){
+	menu_layer_set_callbacks(numbersMenuLayer, NULL, (MenuLayerCallbacks){
 		.get_num_sections = np_menu_get_num_sections_callback,
 				.get_num_rows = np_menu_get_num_rows_callback,
 				.get_cell_height = np_menu_get_row_height_callback,
@@ -307,14 +304,14 @@ void init_number_picker_window()
 				.selection_changed = np_menu_pos_changed
 	});
 
-	menu_layer_set_click_config_onto_window(&numbersMenuLayer, &numberPickerWindow);
+	menu_layer_set_click_config_onto_window(numbersMenuLayer, numberPickerWindow);
 
-	layer_add_child(topLayer, (Layer*) &numbersMenuLayer);
+	layer_add_child(topLayer, (Layer*) numbersMenuLayer);
 
-	window_set_window_handlers(&numberPickerWindow, (WindowHandlers){
+	window_set_window_handlers(numberPickerWindow, (WindowHandlers){
 		.appear = np_window_load
 	});
 
-	window_stack_push(&numberPickerWindow, true /* Animated */);
+	window_stack_push(numberPickerWindow, true /* Animated */);
 }
 

@@ -1,5 +1,4 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
+#include "pebble.h"
 #include "pebble_fonts.h"
 #include "DialerMenu.h"
 #include "FilterWindow.h"
@@ -9,14 +8,6 @@
 #include "CallLog.h"
 
 uint8_t curWindow = 0;
-
-#define MY_UUID { 0x15, 0x8A, 0x07, 0x4D, 0x85, 0xCE, 0x43, 0xD2, 0xAB, 0x7D, 0x14, 0x41, 0x6D, 0xDC, 0x10, 0x58 }
-
-PBL_APP_INFO(MY_UUID,
-		"Pebble Dialer", "matejdro",
-		2, 0, /* App version */
-		RESOURCE_ID_ICON,
-		APP_INFO_STANDARD_APP);
 
 void setCurWindow(int window)
 {
@@ -57,8 +48,13 @@ void switchWindow(int window)
 void received_data(DictionaryIterator *received, void *context) {
 	uint8_t packetId = dict_find(received, 0)->value->uint8;
 
+	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "data: %d, packet: %d", packetId, curWindow);
+
 	if (packetId == 5 && curWindow != 10)
 	{
+		if (curWindow == 0)
+			window_stack_pop(false);
+
 		switchWindow(10);
 	}
 	else if (packetId == 3 && curWindow != 3)
@@ -101,14 +97,7 @@ void data_delivered(DictionaryIterator *sent, void *context) {
 	}
 }
 
-void handle_init(AppContextRef ctx) {
-	resource_init_current_app(&VERSION);
-
-	//Show menu window that displays loading
-	init_menu_window();
-}
-
-void second_tick(AppContextRef app_ctx, PebbleTickEvent *event)
+void second_tick()
 {
 	if (curWindow == 10)
 	{
@@ -116,25 +105,13 @@ void second_tick(AppContextRef app_ctx, PebbleTickEvent *event)
 	}
 }
 
-void pbl_main(void *params) {
-	PebbleAppHandlers handlers = {
-			.init_handler = &handle_init,
-			.messaging_info =
-			{
-					.buffer_sizes =
-					{
-							.inbound = 124,
-							.outbound = 50
-					},
-					.default_callbacks.callbacks = {
-							.in_received = received_data,
-							.out_sent = data_delivered,
-					},
-			},
-			.tick_info = {
-					.tick_handler = &second_tick,
-					.tick_units = SECOND_UNIT
-			}
-	};
-	app_event_loop(params, &handlers);
+int main() {
+	app_message_register_outbox_sent(data_delivered);
+	app_message_register_inbox_received(received_data);
+	app_message_open(124, 50);
+
+	tick_timer_service_subscribe(SECOND_UNIT, (TickHandler) second_tick);
+	init_menu_window();
+	app_event_loop();
+	return 0;
 }
