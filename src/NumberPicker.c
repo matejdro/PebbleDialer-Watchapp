@@ -252,18 +252,25 @@ void np_receivedNumbers(DictionaryIterator* data)
 	{
 		uint16_t groupPos = offset + i;
 
+		if (groupPos >= numMaxNumbers)
+			continue;
+
 		np_setNumberType(groupPos, dict_find(data, 3 + i)->value->cstring);
 		np_setNumber(groupPos, dict_find(data, 5 + i)->value->cstring);
 	}
+	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Menu reload");
 
 	menu_layer_reload_data(numbersMenuLayer);
 	np_sending = false;
+	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Send picked");
 
 	if (pickedNumber >= 0)
 	{
 		np_sendPickedNumber(pickedNumber);
 		return;
 	}
+	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Request add");
+
 	requestAdditionalNumbers();
 }
 
