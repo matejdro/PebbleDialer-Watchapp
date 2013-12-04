@@ -48,8 +48,6 @@ void filter_show_loading()
 
 void filter_show_menu()
 {
-	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "show menu");
-
 	MenuIndex invalidIndex;
 	invalidIndex.row = -1;
 	invalidIndex.section = -1;
@@ -98,8 +96,6 @@ void filter_receivedContactNames(DictionaryIterator* data)
 
 void filter_data_received(int packetId, DictionaryIterator* data)
 {
-	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "got packet %d", packetId);
-
 	switch (packetId)
 	{
 	case 2:
