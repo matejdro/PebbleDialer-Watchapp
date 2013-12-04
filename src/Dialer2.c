@@ -48,8 +48,6 @@ void switchWindow(int window)
 void received_data(DictionaryIterator *received, void *context) {
 	uint8_t packetId = dict_find(received, 0)->value->uint8;
 
-	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "data: %d, packet: %d", packetId, curWindow);
-
 	if (packetId == 5 && curWindow != 10)
 	{
 		if (curWindow == 0)
