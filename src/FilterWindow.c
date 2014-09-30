@@ -177,6 +177,12 @@ void filter_window_load(Window *me) {
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
 }
 
+void filter_window_unload(Window *me) {
+	text_layer_destroy(filterLoadingLayer);
+	menu_layer_destroy(filterMenuLayer);
+	window_destroy(filterWindow);
+}
+
 void init_filter_window()
 {
 	filterWindow = window_create();
@@ -206,6 +212,7 @@ void init_filter_window()
 
 	window_set_window_handlers(filterWindow, (WindowHandlers){
 		.appear = filter_window_load,
+		.unload = filter_window_unload,
 	});
 
 	window_stack_push(filterWindow, true /* Animated */);

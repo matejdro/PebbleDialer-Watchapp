@@ -290,6 +290,11 @@ void np_window_load(Window *me) {
 	pickedNumber = -1;
 }
 
+void np_window_unload(Window *me) {
+	menu_layer_destroy(numbersMenuLayer);
+	window_destroy(numberPickerWindow);
+}
+
 void init_number_picker_window()
 {
 	numberPickerWindow = window_create();
@@ -313,7 +318,8 @@ void init_number_picker_window()
 	layer_add_child(topLayer, (Layer*) numbersMenuLayer);
 
 	window_set_window_handlers(numberPickerWindow, (WindowHandlers){
-		.appear = np_window_load
+		.appear = np_window_load,
+		.unload = np_window_unload
 	});
 
 	window_stack_push(numberPickerWindow, true /* Animated */);

@@ -15,7 +15,7 @@ GBitmap* contactsIcon;
 GBitmap* contactGroupIcon;
 
 TextLayer* menuLoadingLayer;
-SimpleMenuLayer* menuLayer;
+SimpleMenuLayer* menuLayer = NULL;
 
 bool skipGroupFiltering;
 
@@ -67,7 +67,11 @@ void show_menu()
 
 	Layer* topLayer = window_get_root_layer(menuWindow);
 
-	if (menuLayer != NULL) layer_remove_from_parent((Layer *) menuLayer);
+	if (menuLayer != NULL)
+	{
+                layer_remove_from_parent((Layer *) menuLayer);
+                simple_menu_layer_destroy(menuLayer);
+        }
 	menuLayer = simple_menu_layer_create(GRect(0, 0, 144, 156), menuWindow, mainMenuSection, 1, NULL);
 	layer_add_child(topLayer, (Layer *) menuLayer);
 
@@ -145,6 +149,9 @@ void window_unload(Window* me)
 	gbitmap_destroy(callHistoryIcon);
 	gbitmap_destroy(contactsIcon);
 	gbitmap_destroy(contactGroupIcon);
+
+	window_destroy(menuWindow);
+	text_layer_destroy(menuLoadingLayer);
 }
 
 void init_menu_window()

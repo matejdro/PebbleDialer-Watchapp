@@ -264,6 +264,11 @@ void contacts_window_load(Window *me) {
 	pickedContact = -1;
 }
 
+void contacts_window_unload(Window *me) {
+	menu_layer_destroy(contactsMenuLayer);
+	window_destroy(contactsWindow);
+}
+
 void init_contacts_window(char* names)
 {
 	contactsWindow = window_create();
@@ -294,6 +299,7 @@ void init_contacts_window(char* names)
 
 	window_set_window_handlers(contactsWindow, (WindowHandlers){
 		.appear = contacts_window_load,
+		.unload = contacts_window_unload,
 	});
 
 	window_stack_push(contactsWindow, names == NULL /* Animated */);

@@ -227,6 +227,14 @@ void callscreen_unload(Window* me)
 	gbitmap_destroy(buttonMicOn);
 	gbitmap_destroy(buttonSpeakerOn);
 	gbitmap_destroy(buttonSpeakerOff);
+
+	text_layer_destroy(callerNumber);
+	text_layer_destroy(callerNumType);
+	text_layer_destroy(callerName);
+	text_layer_destroy(title);
+
+	action_bar_layer_destroy(actionBar);
+	window_destroy(callscreen);
 }
 
 void callscreen_init()

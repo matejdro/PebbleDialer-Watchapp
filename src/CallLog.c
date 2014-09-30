@@ -349,6 +349,8 @@ void cl_window_unload(Window *me) {
 	gbitmap_destroy(outgoingCall);
 	gbitmap_destroy(missedCall);
 
+	menu_layer_destroy(logMenuLayer);
+	window_destroy(callLogWindow);
 }
 
 void init_call_log_window()
