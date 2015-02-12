@@ -320,7 +320,7 @@ void call_log_window_data_received(int packetId, DictionaryIterator* data)
 {
 	switch (packetId)
 	{
-	case 2:
+	case 0:
 		receivedEntries(data);
 		break;
 
