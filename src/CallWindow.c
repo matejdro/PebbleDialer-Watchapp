@@ -1,38 +1,38 @@
 #include "pebble_fonts.h"
 #include "pebble.h"
 #include "util.h"
+#include "PebbleDialer.h"
+#include "MainMenuWindow.h"
 
-Window* callscreen;
+static Window* window;
 
-TextLayer* title;
-char timerText[6];
+static TextLayer* title;
+static char timerText[6];
 
-TextLayer* callerName;
-TextLayer* callerNumType;
-TextLayer* callerNumber;
+static TextLayer* callerName;
+static TextLayer* callerNumType;
+static TextLayer* callerNumber;
 
-GBitmap* buttonMicOn;
-GBitmap* buttonMicOff;
-GBitmap* buttonAnswer;
-GBitmap* buttonEndCall;
-GBitmap* buttonSpeakerOn;
-GBitmap* buttonSpeakerOff;
+static GBitmap* buttonMicOn;
+static GBitmap* buttonMicOff;
+static GBitmap* buttonAnswer;
+static GBitmap* buttonEndCall;
+static GBitmap* buttonSpeakerOn;
+static GBitmap* buttonSpeakerOff;
 
-ActionBarLayer* actionBar;
+static ActionBarLayer* actionBar;
 
-bool callEstablished;
-uint16_t elapsedTime = 0;
-bool speakerOn;
-bool micOn;
-bool nameExist;
+static bool callEstablished;
+static uint16_t elapsedTime = 0;
+static bool speakerOn;
+static bool micOn;
+static bool nameExist;
 
-bool busy;
+static char callerNameText[21];
+static char callerNumTypeText[21];
+static char callerNumberText[21];
 
-char callerNameText[21];
-char callerNumTypeText[21];
-char callerNumberText[21];
-
-void convertTwoNumber(int number, char* string, int offset)
+static void convertTwoNumber(int number, char* string, int offset)
 {
 	if (number == 0)
 	{
@@ -55,7 +55,7 @@ void convertTwoNumber(int number, char* string, int offset)
 	}
 }
 
-void updateTimer()
+static void updateTimer(void)
 {
 	int minutes = elapsedTime / 60;
 	int seconds = elapsedTime % 60;
@@ -70,7 +70,7 @@ void updateTimer()
 
 }
 
-void renderTextFields()
+static void updateTextFields(void)
 {
 	if (nameExist)
 	{
@@ -99,7 +99,7 @@ void renderTextFields()
 	}
 }
 
-void renderActionBar()
+static void updateActionBar(void)
 {
 	if (callEstablished)
 	{
@@ -115,23 +115,20 @@ void renderActionBar()
 	}
 }
 
-void sendAction(int buttonId)
+static void sendAction(int buttonId)
 {
 	DictionaryIterator *iterator;
 	app_message_outbox_begin(&iterator);
 
-	dict_write_uint8(iterator, 0, 7);
-	dict_write_uint8(iterator, 1, buttonId);
+	dict_write_uint8(iterator, 0, 1);
+	dict_write_uint8(iterator, 1, 0);
+	dict_write_uint8(iterator, 2, buttonId);
 
 	app_message_outbox_send();
-
-	busy = true;
 }
 
-void up_button_callscreen(ClickRecognizerRef recognizer, Window *window)
+static void button_up_press(ClickRecognizerRef recognizer, Window *window)
 {
-	if (busy) return;
-
 	if (callEstablished)
 	{
 		micOn = !micOn;
@@ -141,72 +138,57 @@ void up_button_callscreen(ClickRecognizerRef recognizer, Window *window)
 		speakerOn = !speakerOn;
 	}
 
-	renderActionBar();
+	updateActionBar();
 	sendAction(0);
 }
 
-void center_button_callscreen(ClickRecognizerRef recognizer, Window *window)
+static void button_select_press(ClickRecognizerRef recognizer, Window *window)
 {
-	if (busy) return;
-
 	if (callEstablished)
 	{
 		speakerOn = !speakerOn;
-		renderActionBar();
+		updateActionBar();
 	}
 
 	sendAction(1);
 }
 
-void down_button_callscreen(ClickRecognizerRef recognizer, Window *window)
+static void button_down_press(ClickRecognizerRef recognizer, Window *window)
 {
-	if (busy) return;
-
 	sendAction(2);
 }
 
-void config_provider_callscreen(void* context) {
-	window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) up_button_callscreen);
-	window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) down_button_callscreen);
-	window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) center_button_callscreen);
+static void config_provider_callscreen(void* context) {
+	window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) button_up_press);
+	window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) button_down_press);
+	window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) button_select_press);
 }
 
-void callscreen_received_data(uint8_t id, DictionaryIterator *received) {
-	if (id == 5)
+void call_window_data_received(uint8_t id, DictionaryIterator *received) {
+	if (id == 0)
 	{
-		uint8_t* flags = dict_find(received, 4)->value->data;
+		uint8_t* flags = dict_find(received, 5)->value->data;
 		callEstablished = flags[0] == 1;
 		speakerOn = flags[1] == 1;
 		micOn = flags[2] == 1;
 		nameExist = flags[3] == 1;
 
-		strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
+		strcpy(callerNumberText, dict_find(received, 4)->value->cstring);
 		if (nameExist)
 		{
-			strcpy(callerNameText, dict_find(received, 1)->value->cstring);
-			strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
+			strcpy(callerNameText, dict_find(received, 2)->value->cstring);
+			strcpy(callerNumTypeText, dict_find(received, 3)->value->cstring);
 		}
 
 		if (callEstablished)
-			elapsedTime = dict_find(received, 5)->value->uint16;
+			elapsedTime = dict_find(received, 6)->value->uint16;
 
-		renderActionBar();
-		renderTextFields();
+		updateActionBar();
+		updateTextFields();
 	}
 }
 
-void callscreen_data_delivered(DictionaryIterator *sent) {
-	busy = false;
-}
-
-void callscreen_appears(Window *window)
-{
-	action_bar_layer_add_to_window(actionBar, callscreen);
-}
-
-
-
-void callscreen_second()
+static void second_tick()
 {
 	if (callEstablished)
 	{
@@ -219,35 +201,9 @@ void callscreen_second()
 	}
 }
 
-void callscreen_unload(Window* me)
+static void window_load(Window* me)
 {
-	gbitmap_destroy(buttonAnswer);
-	gbitmap_destroy(buttonEndCall);
-	gbitmap_destroy(buttonMicOff);
-	gbitmap_destroy(buttonMicOn);
-	gbitmap_destroy(buttonSpeakerOn);
-	gbitmap_destroy(buttonSpeakerOff);
-}
-
-void callscreen_init()
-{
-	elapsedTime = 0;
-	callEstablished = false;
-	speakerOn = true;
-	micOn = true;
-	nameExist = true;
-
-	busy = false;
-
-	callscreen = window_create();
-
-	window_set_window_handlers(callscreen, (WindowHandlers) {
-		.appear = (WindowHandler)callscreen_appears,
-		.unload = (WindowHandler)callscreen_unload,
-
-	});
-
-	Layer* topLayer = window_get_root_layer(callscreen);
+	Layer* topLayer = window_get_root_layer(window);
 
 	title = text_layer_create(GRect(5,0,144 - 30,30));
 	text_layer_set_font(title, fonts_get_system_font(FONT_KEY_GOTHIC_24));
@@ -278,9 +234,55 @@ void callscreen_init()
 
 	actionBar = action_bar_layer_create();
 	action_bar_layer_set_click_config_provider(actionBar, (ClickConfigProvider) config_provider_callscreen);
+	action_bar_layer_add_to_window(actionBar, window);
+}
 
-	window_stack_push(callscreen, false);
+static void window_unload(Window* me)
+{
+	gbitmap_destroy(buttonAnswer);
+	gbitmap_destroy(buttonEndCall);
+	gbitmap_destroy(buttonMicOff);
+	gbitmap_destroy(buttonMicOn);
+	gbitmap_destroy(buttonSpeakerOn);
+	gbitmap_destroy(buttonSpeakerOff);
 
-	//renderActionBar();
-	//renderTextFields();
+	text_layer_destroy(title);
+	text_layer_destroy(callerName);
+	text_layer_destroy(callerNumType);
+	text_layer_destroy(callerNumber);
+	action_bar_layer_destroy(actionBar);
+
+	window_destroy(me);
+
+	tick_timer_service_unsubscribe();
+}
+
+void call_window_init(void)
+{
+	elapsedTime = 0;
+	callEstablished = false;
+	speakerOn = true;
+	micOn = true;
+	nameExist = true;
+
+	window = window_create();
+
+	window_set_window_handlers(window, (WindowHandlers) {
+		.load = (WindowHandler) window_load,
+		.unload = (WindowHandler) window_unload
+
+	});
+
+	tick_timer_service_subscribe(SECOND_UNIT, (TickHandler) second_tick);
+
+	window_stack_push(window, false);
+	setCurWindow(1);
+
+	if (config_noMenu)
+	{
+		if (!config_dontClose)
+			main_menu_close();
+		else
+			main_menu_show_closing();
+	}
 }

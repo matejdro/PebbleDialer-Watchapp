@@ -8,7 +8,9 @@
 #ifndef CONTACTSWINDOW_H_
 #define CONTACTSWINDOW_H_
 
-void contacts_data_received(int packetId, DictionaryIterator* data);
-void init_contacts_window(char* names);
+void contacts_window_data_received(int packetId, DictionaryIterator* data);
+void contacts_window_data_delivered(void);
+void contacts_window_init(void);
+void contacts_window_stop_filtering(void);
 
 #endif /* CONTACTSWINDOW_H_ */

@@ -1,23 +1,29 @@
 #include "pebble.h"
 #include "pebble_fonts.h"
-#include "Dialer2.h"
+
+#include "PebbleDialer.h"
 #include "util.h"
 
-Window* contactsWindow;
+static Window* window;
 
-uint16_t numMaxContacts = 10;
+static uint16_t numMaxContacts = 7;
 
-int8_t arrayCenterPos = 0;
-int16_t centerIndex = 0;
+static int8_t arrayCenterPos = 0;
+static int16_t centerIndex = 0;
 
-int16_t pickedContact = -1;
+static int16_t pickedContact = -1;
+static int8_t pickedFilterButton = -1;
 
-bool sending = false;
-char cw_contactNames[21][21] = {};
+static char contactNames[21][21] = {};
 
-MenuLayer* contactsMenuLayer;
+static MenuLayer* contactsMenuLayer;
 
-int8_t cw_convertToArrayPos(uint16_t index)
+static bool filterMode;
+static bool nothingFiltered;
+
+static void menu_config_provider(void* context);
+
+static int8_t convertToArrayPos(uint16_t index)
 {
 	int16_t indexDiff = index - centerIndex;
 	if (indexDiff > 10 || indexDiff < -10)
@@ -32,25 +38,25 @@ int8_t cw_convertToArrayPos(uint16_t index)
 	return arrayPos;
 }
 
-char* cw_getContactName(uint16_t index)
+static char* getContactName(uint16_t index)
 {
-	int8_t arrayPos = cw_convertToArrayPos(index);
+	int8_t arrayPos = convertToArrayPos(index);
 	if (arrayPos < 0)
 		return "";
 
-	return cw_contactNames[arrayPos];
+	return contactNames[arrayPos];
 }
 
-void cw_setContactName(uint16_t index, char *name)
+static void setContactName(uint16_t index, char *name)
 {
-	int8_t arrayPos = cw_convertToArrayPos(index);
+	int8_t arrayPos = convertToArrayPos(index);
 	if (arrayPos < 0)
 		return;
 
-	strcpy(cw_contactNames[arrayPos],name);
+	strcpy(contactNames[arrayPos],name);
 }
 
-void cw_shiftContactArray(int newIndex)
+static void shiftContactArray(int newIndex)
 {
 	int8_t clearIndex;
 
@@ -80,10 +86,10 @@ void cw_shiftContactArray(int newIndex)
 			clearIndex -= 21;
 	}
 
-	*cw_contactNames[clearIndex] = 0;
+	*contactNames[clearIndex] = 0;
 }
 
-uint8_t cw_getEmptySpacesDown()
+static uint8_t getEmptySpacesDown(void)
 {
 	uint8_t spaces = 0;
 	for (int i = centerIndex; i <= centerIndex + 10; i++)
@@ -91,7 +97,7 @@ uint8_t cw_getEmptySpacesDown()
 		if (i >= numMaxContacts)
 			return 10;
 
-		if (*cw_getContactName(i) == 0)
+		if (*getContactName(i) == 0)
 		{
 			break;
 		}
@@ -102,7 +108,7 @@ uint8_t cw_getEmptySpacesDown()
 	return spaces;
 }
 
-uint8_t cw_getEmptySpacesUp()
+static uint8_t getEmptySpacesUp(void)
 {
 	uint8_t spaces = 0;
 	for (int i = centerIndex; i >= centerIndex - 10; i--)
@@ -110,7 +116,7 @@ uint8_t cw_getEmptySpacesUp()
 		if (i < 0)
 			return 10;
 
-		if (*cw_getContactName(i) == 0)
+		if (*getContactName(i) == 0)
 		{
 			break;
 		}
@@ -121,110 +127,194 @@ uint8_t cw_getEmptySpacesUp()
 	return spaces;
 }
 
-void contacts_requestContacts(uint16_t pos)
+static void requestContacts(uint16_t pos)
 {
 	DictionaryIterator *iterator;
 	app_message_outbox_begin(&iterator);
-	dict_write_uint8(iterator, 0, 5);
-	dict_write_uint16(iterator, 1, pos);
+	dict_write_uint8(iterator, 0, 3);
+	dict_write_uint8(iterator, 1, 1);
+	dict_write_uint16(iterator, 2, pos);
 	app_message_outbox_send();
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
-	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
-
-	sending = true;
 }
 
-void contacts_sendPickedContact(int16_t pos)
+static void sendPickedContact(int16_t pos)
 {
-	if (sending)
+	DictionaryIterator *iterator;
+	AppMessageResult result = app_message_outbox_begin(&iterator);
+	if (result != APP_MSG_OK)
 	{
-		pickedContact = pos;
-		return;
+			pickedContact = pos;
+			return;
 	}
 
-	DictionaryIterator *iterator;
-	app_message_outbox_begin(&iterator);
-	dict_write_uint8(iterator, 0, 6);
-	dict_write_int16(iterator, 1, pos);
+	dict_write_uint8(iterator, 0, 3);
+	dict_write_uint8(iterator, 1, 2);
+	dict_write_int16(iterator, 2, pos);
 	app_message_outbox_send();
-
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
-	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
+
+	pickedContact = -1;
 }
 
-void requestAdditionalContacts()
+static void requestAdditionalContacts(void)
 {
-	if (sending)
-		return;
-
-	int emptyDown = cw_getEmptySpacesDown();
-	int emptyUp = cw_getEmptySpacesUp();
+	int emptyDown = getEmptySpacesDown();
+	int emptyUp = getEmptySpacesUp();
 
 	if (emptyDown < 6 && emptyDown <= emptyUp)
 	{
 		uint8_t startingIndex = centerIndex + emptyDown;
-		contacts_requestContacts(startingIndex);
+		requestContacts(startingIndex);
 	}
 	else if (emptyUp < 6)
 	{
 		uint8_t startingIndex = centerIndex - 2 - emptyUp;
-		contacts_requestContacts(startingIndex);
+		requestContacts(startingIndex);
 	}
 }
 
-uint16_t cw_menu_get_num_sections_callback(MenuLayer *me, void *data) {
+static uint16_t menu_get_num_sections_callback(MenuLayer *me, void *data) {
+	if (filterMode)
+		return 2; //Second section is dummy section to hold selection when filtering is active
+
 	return 1;
 }
 
-uint16_t cw_menu_get_num_rows_callback(MenuLayer *me, uint16_t section_index, void *data) {
+static uint16_t menu_get_num_rows_callback(MenuLayer *me, uint16_t section_index, void *data) {
+	if (section_index != 0)
+			return 1;
+
 	return numMaxContacts;
 }
 
 
-int16_t cw_menu_get_row_height_callback(MenuLayer *me,  MenuIndex *cell_index, void *data) {
+static int16_t menu_get_row_height_callback(MenuLayer *me,  MenuIndex *cell_index, void *data) {
+	if (cell_index->section != 0)
+		return 0;
+
 	return 27;
 }
 
-void cw_menu_pos_changed(struct MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *callback_context)
+static void menu_pos_changed(struct MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *callback_context)
 {
-//	if (old_index.row == 0 && new_index.row != 1)
-//		return;
-
-	cw_shiftContactArray(new_index.row);
+	shiftContactArray(new_index.row);
 	requestAdditionalContacts();
 }
 
 
-void cw_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+	if (cell_index->section != 0)
+			return;
+
 	graphics_context_set_text_color(ctx, GColorBlack);
-
-//	if (cell_index->row == 0)
-//	{
-//		graphics_text_draw(ctx, itoa(cw_getEmptySpacesUp()), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-//
-//	}
-//	else if (cell_index->row == 1)
-//	{
-//		graphics_text_draw(ctx, itoa(cw_getEmptySpacesDown()), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-//	}
-//	if (cell_index->row == contactsMenuLayer.selection.index.row)
-//		{
-//			graphics_text_draw(ctx, itoa(centerIndex), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-//		}
-//	else
-		graphics_draw_text(ctx, cw_getContactName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+	graphics_draw_text(ctx, getContactName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 
-
-void cw_menu_select_callback(MenuLayer *me, MenuIndex *cell_index, void *data) {
-	contacts_sendPickedContact(cell_index->row);
-}
-
-void contacts_receivedContactNames(DictionaryIterator* data)
+static void filter(int button)
 {
-	uint16_t offset = dict_find(data, 1)->value->uint16;
-	numMaxContacts = dict_find(data, 2)->value->uint16;
+	DictionaryIterator *iterator;
+	AppMessageResult result = app_message_outbox_begin(&iterator);
+	if (result != APP_MSG_OK)
+	{
+			pickedFilterButton = button;
+			return;
+	}
+
+	dict_write_uint8(iterator, 0, 3);
+	dict_write_uint8(iterator, 1, 0);
+	dict_write_uint8(iterator, 2, button);
+	app_message_outbox_send();
+	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
+
+	memset(contactNames, 0, 21 * 21);
+	nothingFiltered = button == 3;
+	menu_layer_reload_data(contactsMenuLayer);
+	pickedFilterButton = -1;
+}
+
+
+void contacts_window_stop_filtering(void)
+{
+	filterMode = false;
+	menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(0, 0), MenuRowAlignCenter, false);
+	menu_layer_set_click_config_onto_window(contactsMenuLayer, window);
+
+	window_set_click_config_provider(window, menu_config_provider);
+
+}
+
+static void filter_up_button(ClickRecognizerRef recognizer, Window *window) {
+	filter(0);
+}
+
+static void filter_down_button(ClickRecognizerRef recognizer, Window *window) {
+
+	filter(2);
+}
+
+static void filter_center_button(ClickRecognizerRef recognizer, Window *window)
+{
+	filter(1);
+}
+
+static void filter_back_button(ClickRecognizerRef recognizer, Window *window)
+{
+	if (nothingFiltered || !filterMode)
+		window_stack_pop(true);
+	else
+		filter(3);
+}
+
+static void filter_center_long(ClickRecognizerRef recognizer, Window *window)
+{
+
+	requestContacts(8);
+	contacts_window_stop_filtering();
+}
+
+static void menu_up_button(ClickRecognizerRef recognizer, Window *window) {
+	menu_layer_set_selected_next(contactsMenuLayer, true, MenuRowAlignCenter, true);
+}
+
+static void menu_center_button(ClickRecognizerRef recognizer, Window *window)
+{
+	MenuIndex cell_index = menu_layer_get_selected_index(contactsMenuLayer);
+	sendPickedContact(cell_index.row);
+
+}
+
+
+static void menu_down_button(ClickRecognizerRef recognizer, Window *window) {
+	menu_layer_set_selected_next(contactsMenuLayer, false, MenuRowAlignCenter, true);
+}
+
+
+
+static void filter_config_provider(void* context) {
+	window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) filter_up_button);
+	window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) filter_down_button);
+	window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) filter_center_button);
+	window_single_click_subscribe(BUTTON_ID_BACK, (ClickHandler) filter_back_button);
+
+	window_long_click_subscribe(BUTTON_ID_SELECT, 500, (ClickHandler) filter_center_long, NULL);
+}
+
+static void menu_config_provider(void* context)
+{
+	window_single_repeating_click_subscribe(BUTTON_ID_UP, 100, (ClickHandler) menu_up_button);
+	window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 100, (ClickHandler) menu_down_button);
+
+	window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) menu_center_button);
+	window_single_click_subscribe(BUTTON_ID_BACK, (ClickHandler) filter_back_button);
+}
+
+
+static void receivedContactNames(DictionaryIterator* data)
+{
+	uint16_t offset = dict_find(data, 2)->value->uint16;
+	numMaxContacts = dict_find(data, 3)->value->uint16;
 	for (int i = 0; i < 3; i++)
 	{
 		uint16_t groupPos = offset + i;
@@ -232,70 +322,85 @@ void contacts_receivedContactNames(DictionaryIterator* data)
 			break;
 
 
-		cw_setContactName(groupPos, dict_find(data, 3 + i)->value->cstring);
+		setContactName(groupPos, dict_find(data, 4 + i)->value->cstring);
+	}
+
+	if (numMaxContacts == 0)
+	{
+		setContactName(0, "No contacts");
+		numMaxContacts = 1;
 	}
 
 	menu_layer_reload_data(contactsMenuLayer);
-	sending = false;
 
-	if (pickedContact >= 0)
-	{
-		contacts_sendPickedContact(pickedContact);
-		return;
-	}
 	requestAdditionalContacts();
 }
 
-void contacts_data_received(int packetId, DictionaryIterator* data)
+void contacts_window_data_received(int packetId, DictionaryIterator* data)
 {
 	switch (packetId)
 	{
-	case 2:
-		contacts_receivedContactNames(data);
+	case 0:
+		receivedContactNames(data);
 		break;
 
 	}
-
 }
 
-void contacts_window_load(Window *me) {
-	setCurWindow(2);
-
-	pickedContact = -1;
-}
-
-void init_contacts_window(char* names)
+void contacts_window_data_delivered(void)
 {
-	contactsWindow = window_create();
+	if (pickedContact != -1)
+		sendPickedContact(pickedContact);
+}
 
-	Layer* topLayer = window_get_root_layer(contactsWindow);
+static void window_load(Window* me)
+{
+	Layer* topLayer = window_get_root_layer(window);
 
 	contactsMenuLayer = menu_layer_create(GRect(0, 0, 144, 168 - 16));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(contactsMenuLayer, NULL, (MenuLayerCallbacks){
-		.get_num_sections = cw_menu_get_num_sections_callback,
-				.get_num_rows = cw_menu_get_num_rows_callback,
-				.get_cell_height = cw_menu_get_row_height_callback,
-				.draw_row = cw_menu_draw_row_callback,
-				.select_click = cw_menu_select_callback,
-				.selection_changed = cw_menu_pos_changed
+		.get_num_sections = menu_get_num_sections_callback,
+		.get_num_rows = menu_get_num_rows_callback,
+		.get_cell_height = menu_get_row_height_callback,
+		.draw_row = menu_draw_row_callback,
+		.selection_changed = menu_pos_changed
 	});
-
-	if (names != NULL)
-	{
-		memcpy(cw_contactNames, names, 21 * 6);
-		contacts_requestContacts(6);
-	}
-
-	menu_layer_set_click_config_onto_window(contactsMenuLayer, contactsWindow);
 
 	layer_add_child(topLayer, (Layer*) contactsMenuLayer);
 
-	window_set_window_handlers(contactsWindow, (WindowHandlers){
-		.appear = contacts_window_load,
+	window_set_click_config_provider(window, filter_config_provider);
+
+	filterMode = true;
+	nothingFiltered = true;
+	menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(0, 0), MenuRowAlignCenter, false);
+	menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(-1, -1), MenuRowAlignNone, false);
+	centerIndex = 0;
+	arrayCenterPos = 0;
+	memset(contactNames, 0, 21 * 21);
+}
+
+static void window_appear(Window *me) {
+	setCurWindow(3);
+}
+
+static void window_unload(Window* me)
+{
+	menu_layer_destroy(contactsMenuLayer);
+	window_destroy(me);
+}
+
+void contacts_window_init()
+{
+	window = window_create();
+
+	window_set_window_handlers(window, (WindowHandlers){
+		.load = window_load,
+		.unload = window_unload,
+		.appear = window_appear
 	});
 
-	window_stack_push(contactsWindow, names == NULL /* Animated */);
+	window_stack_push(window, true /* Animated */);
 }
 
