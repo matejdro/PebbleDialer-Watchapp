@@ -28,9 +28,9 @@ static bool speakerOn;
 static bool micOn;
 static bool nameExist;
 
-static char callerNameText[21];
-static char callerNumTypeText[21];
-static char callerNumberText[21];
+static char callerNameText[101];
+static char callerNumTypeText[31];
+static char callerNumberText[31];
 
 static void convertTwoNumber(int number, char* string, int offset)
 {
@@ -167,24 +167,28 @@ static void config_provider_callscreen(void* context) {
 void call_window_data_received(uint8_t id, DictionaryIterator *received) {
 	if (id == 0)
 	{
-		uint8_t* flags = dict_find(received, 5)->value->data;
+		uint8_t* flags = dict_find(received, 4)->value->data;
 		callEstablished = flags[0] == 1;
 		speakerOn = flags[1] == 1;
 		micOn = flags[2] == 1;
 		nameExist = flags[3] == 1;
 
-		strcpy(callerNumberText, dict_find(received, 4)->value->cstring);
+		strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
 		if (nameExist)
 		{
-			strcpy(callerNameText, dict_find(received, 2)->value->cstring);
-			strcpy(callerNumTypeText, dict_find(received, 3)->value->cstring);
+			strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
 		}
 
 		if (callEstablished)
-			elapsedTime = dict_find(received, 6)->value->uint16;
+			elapsedTime = dict_find(received, 5)->value->uint16;
 
 		updateActionBar();
 		updateTextFields();
+	}
+	else if (id == 1)
+	{
+		strcpy(callerNameText, dict_find(received, 2)->value->cstring);
+		text_layer_set_text(callerName, callerNameText);
 	}
 }
 
@@ -210,9 +214,10 @@ static void window_load(Window* me)
 	text_layer_set_text_alignment(title, GTextAlignmentCenter);
 	layer_add_child(topLayer, (Layer *)title);
 
-	callerName = text_layer_create(GRect(5,40,144 - 30,60));
+	callerName = text_layer_create(GRect(5,30,144 - 30,90));
 	text_layer_set_font(callerName, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	text_layer_set_text_alignment(callerName, GTextAlignmentCenter);
+
 	layer_add_child(topLayer, (Layer *)callerName);
 
 	callerNumType = text_layer_create(GRect(5,100,144 - 30,20));
