@@ -7,7 +7,7 @@
 #include "MainMenuWindow.h"
 #include "NumberPickerWindow.h"
 
-const uint16_t PROTOCOL_VERSION = 3;
+const uint16_t PROTOCOL_VERSION = 4;
 
 static uint8_t curWindow = 0;
 static bool gotConfig = false;

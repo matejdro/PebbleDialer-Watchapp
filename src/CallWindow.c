@@ -70,6 +70,16 @@ static void updateTimer(void)
 
 }
 
+static void moveCallerNameField()
+{
+	text_layer_set_size(callerName, GSize(144 - 30, 30000));
+	int height = text_layer_get_content_size(callerName).h;
+	if (height > 90)
+		height = 90;
+
+	layer_set_frame(text_layer_get_layer(callerName), GRect(5, 40 + (25 - height / 2), 144 - 30, height + 5));
+}
+
 static void updateTextFields(void)
 {
 	if (nameExist)
@@ -80,6 +90,7 @@ static void updateTextFields(void)
 
 		layer_set_hidden((Layer * ) callerNumType, false);
 		layer_set_hidden((Layer * ) callerNumber, false);
+
 	}
 	else
 	{
@@ -88,6 +99,8 @@ static void updateTextFields(void)
 		layer_set_hidden((Layer * ) callerNumType, true);
 		layer_set_hidden((Layer * ) callerNumber, true);
 	}
+
+	moveCallerNameField();
 
 	if (callEstablished)
 	{
@@ -189,6 +202,7 @@ void call_window_data_received(uint8_t id, DictionaryIterator *received) {
 	{
 		strcpy(callerNameText, dict_find(received, 2)->value->cstring);
 		text_layer_set_text(callerName, callerNameText);
+		moveCallerNameField();
 	}
 }
 
@@ -217,6 +231,7 @@ static void window_load(Window* me)
 	callerName = text_layer_create(GRect(5,30,144 - 30,90));
 	text_layer_set_font(callerName, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	text_layer_set_text_alignment(callerName, GTextAlignmentCenter);
+	text_layer_set_background_color(callerName, GColorClear);
 
 	layer_add_child(topLayer, (Layer *)callerName);
 
