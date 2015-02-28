@@ -20,13 +20,16 @@ static GBitmap* buttonEndCall;
 static GBitmap* buttonSpeakerOn;
 static GBitmap* buttonSpeakerOff;
 
+static GBitmap** indexedIcons[6] = {&buttonAnswer, &buttonEndCall, &buttonMicOn, &buttonMicOff, &buttonSpeakerOn, &buttonSpeakerOff };
+
 static ActionBarLayer* actionBar;
 
 static bool callEstablished;
 static uint16_t elapsedTime = 0;
-static bool speakerOn;
-static bool micOn;
 static bool nameExist;
+static bool vibrate;
+
+static bool vibratingNow = false;
 
 static char callerNameText[101];
 static char callerNumTypeText[31];
@@ -112,22 +115,6 @@ static void updateTextFields(void)
 	}
 }
 
-static void updateActionBar(void)
-{
-	if (callEstablished)
-	{
-		action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, micOn ? buttonMicOn : buttonMicOff);
-		action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, speakerOn ? buttonSpeakerOn : buttonSpeakerOff);
-		action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, buttonEndCall);
-	}
-	else
-	{
-		action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, speakerOn ? buttonSpeakerOn : buttonSpeakerOff);
-		action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, buttonAnswer);
-		action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, buttonEndCall);
-	}
-}
-
 static void sendAction(int buttonId)
 {
 	DictionaryIterator *iterator;
@@ -142,27 +129,11 @@ static void sendAction(int buttonId)
 
 static void button_up_press(ClickRecognizerRef recognizer, Window *window)
 {
-	if (callEstablished)
-	{
-		micOn = !micOn;
-	}
-	else
-	{
-		speakerOn = !speakerOn;
-	}
-
-	updateActionBar();
 	sendAction(0);
 }
 
 static void button_select_press(ClickRecognizerRef recognizer, Window *window)
 {
-	if (callEstablished)
-	{
-		speakerOn = !speakerOn;
-		updateActionBar();
-	}
-
 	sendAction(1);
 }
 
@@ -171,10 +142,36 @@ static void button_down_press(ClickRecognizerRef recognizer, Window *window)
 	sendAction(2);
 }
 
+static void button_up_hold(ClickRecognizerRef recognizer, Window *window)
+{
+	sendAction(3);
+}
+
+static void button_select_hold(ClickRecognizerRef recognizer, Window *window)
+{
+	sendAction(4);
+}
+
+static void button_down_hold(ClickRecognizerRef recognizer, Window *window)
+{
+	sendAction(5);
+}
+
+static void shake(AccelAxisType axis, int32_t direction)
+{
+	if (vibratingNow) //Vibration seems to generate a lot of false positives
+		return;
+
+	sendAction(6);
+}
+
 static void config_provider_callscreen(void* context) {
 	window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) button_up_press);
 	window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) button_down_press);
 	window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) button_select_press);
+	window_long_click_subscribe(BUTTON_ID_UP, 700, (ClickHandler) button_up_hold, NULL);
+	window_long_click_subscribe(BUTTON_ID_SELECT, 700, (ClickHandler) button_select_hold, NULL);
+	window_long_click_subscribe(BUTTON_ID_DOWN, 700, (ClickHandler) button_down_hold, NULL);
 }
 
 void call_window_data_received(uint8_t id, DictionaryIterator *received) {
@@ -182,9 +179,16 @@ void call_window_data_received(uint8_t id, DictionaryIterator *received) {
 	{
 		uint8_t* flags = dict_find(received, 4)->value->data;
 		callEstablished = flags[0] == 1;
-		speakerOn = flags[1] == 1;
-		micOn = flags[2] == 1;
-		nameExist = flags[3] == 1;
+		nameExist = flags[1] == 1;
+		vibrate = flags[5] == 1;
+
+		uint8_t topIcon = flags[2];
+		uint8_t middleIcon = flags[3];
+		uint8_t bottomIcon = flags[4];
+
+		action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, *indexedIcons[topIcon]);
+		action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, *indexedIcons[middleIcon]);
+		action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, *indexedIcons[bottomIcon]);
 
 		strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
 		if (nameExist)
@@ -195,7 +199,6 @@ void call_window_data_received(uint8_t id, DictionaryIterator *received) {
 		if (callEstablished)
 			elapsedTime = dict_find(received, 5)->value->uint16;
 
-		updateActionBar();
 		updateTextFields();
 	}
 	else if (id == 1)
@@ -206,6 +209,12 @@ void call_window_data_received(uint8_t id, DictionaryIterator *received) {
 	}
 }
 
+static void vibration_stopped(void* data)
+{
+	vibratingNow = false;
+}
+
+
 static void second_tick()
 {
 	if (callEstablished)
@@ -213,9 +222,11 @@ static void second_tick()
 		elapsedTime++;
 		updateTimer();
 	}
-	else
+	else if (vibrate)
 	{
-		if (speakerOn) vibes_double_pulse();
+		vibratingNow = true;
+		vibes_double_pulse();
+		app_timer_register(500, vibration_stopped, NULL);
 	}
 }
 
@@ -255,6 +266,9 @@ static void window_load(Window* me)
 	actionBar = action_bar_layer_create();
 	action_bar_layer_set_click_config_provider(actionBar, (ClickConfigProvider) config_provider_callscreen);
 	action_bar_layer_add_to_window(actionBar, window);
+
+	tick_timer_service_subscribe(SECOND_UNIT, (TickHandler) second_tick);
+	accel_tap_service_subscribe(shake);
 }
 
 static void window_unload(Window* me)
@@ -275,14 +289,13 @@ static void window_unload(Window* me)
 	window_destroy(me);
 
 	tick_timer_service_unsubscribe();
+	accel_tap_service_unsubscribe();
 }
 
 void call_window_init(void)
 {
 	elapsedTime = 0;
 	callEstablished = false;
-	speakerOn = true;
-	micOn = true;
 	nameExist = true;
 
 	window = window_create();
@@ -292,8 +305,6 @@ void call_window_init(void)
 		.unload = (WindowHandler) window_unload
 
 	});
-
-	tick_timer_service_subscribe(SECOND_UNIT, (TickHandler) second_tick);
 
 	window_stack_push(window, false);
 	setCurWindow(1);
