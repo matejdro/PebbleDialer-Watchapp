@@ -4,5 +4,8 @@ build
 PebbleDialer
 
 waf*
-*wscript
+*wscript*
 .lock*
+
+CMakeLists.txt
+.idea

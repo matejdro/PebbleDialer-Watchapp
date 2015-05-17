@@ -18,6 +18,10 @@ char numbers[21][16] = {};
 
 MenuLayer* menuLayer;
 
+#ifdef PBL_SDK_3
+	StatusBarLayer* statusBar;
+#endif
+
 static int8_t convertToArrayPos(uint16_t index)
 {
 	int16_t indexDiff = index - centerIndex;
@@ -262,7 +266,7 @@ void number_picker_window_data_sent(void)
 static void window_load(Window* me) {
 	Layer* topLayer = window_get_root_layer(window);
 
-	menuLayer = menu_layer_create(GRect(0, 0, 144, 168 - 16));
+	menuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, 144, 168 - 16));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){
@@ -277,6 +281,16 @@ static void window_load(Window* me) {
 	menu_layer_set_click_config_onto_window(menuLayer, window);
 
 	layer_add_child(topLayer, (Layer*) menuLayer);
+
+	#ifdef PBL_COLOR
+		menu_layer_set_highlight_colors(menuLayer, GColorJaegerGreen, GColorBlack);
+	#endif
+
+
+#ifdef PBL_SDK_3
+		statusBar = status_bar_layer_create();
+		layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
+	#endif
 }
 
 static void window_appear(Window* me)
@@ -287,6 +301,10 @@ static void window_appear(Window* me)
 static void window_unload(Window* me)
 {
 	menu_layer_destroy(menuLayer);
+
+	#ifdef PBL_SDK_3
+		status_bar_layer_destroy(statusBar);
+	#endif
 
 	window_destroy(me);
 }

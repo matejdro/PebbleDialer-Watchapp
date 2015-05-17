@@ -7,8 +7,6 @@
 static Window* window;
 
 static char groupNames[20][21] = {};
-static SimpleMenuItem mainMenuItems[22] = {};
-static SimpleMenuSection mainMenuSection[1] = {};
 
 static GBitmap* callHistoryIcon;
 static GBitmap* contactsIcon;
@@ -19,26 +17,28 @@ static TextLayer* loadingLayer;
 static TextLayer* quitTitle;
 static TextLayer* quitText;
 
-static SimpleMenuLayer* menuLayer;
+static MenuLayer* menuLayer;
+
+#ifdef PBL_SDK_3
+	static StatusBarLayer* statusBar;
+#endif
 
 static bool menuLoaded = false;
 
 static void show_update_dialog(void);
-static void reload_menu(void);
-static void menu_picked(int index, void* context);
 
 static void show_loading(void)
 {
 	layer_set_hidden((Layer *) loadingLayer, false);
 	layer_set_hidden((Layer *) quitTitle, true);
 	layer_set_hidden((Layer *) quitText, true);
-	if (menuLayer != NULL) layer_set_hidden((Layer *) menuLayer, true);
+	layer_set_hidden((Layer *) menuLayer, true);
 }
 
 void main_menu_show_closing(void)
 {
 	layer_set_hidden((Layer *) loadingLayer, true);
-	if (menuLayer != NULL) layer_set_hidden((Layer *) menuLayer, true);
+	layer_set_hidden((Layer *) menuLayer, true);
 	layer_set_hidden((Layer *) quitTitle, false);
 	layer_set_hidden((Layer *) quitText, false);
 
@@ -63,55 +63,54 @@ static void show_update_dialog(void)
 	layer_set_hidden((Layer *) loadingLayer, false);
 	layer_set_hidden((Layer *) quitTitle, true);
 	layer_set_hidden((Layer *) quitText, true);
-	if (menuLayer != NULL) layer_set_hidden((Layer *) menuLayer, true);
+	layer_set_hidden((Layer *) menuLayer, true);
 
 	text_layer_set_font(loadingLayer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+}
+
+static uint16_t menu_get_num_sections_callback(MenuLayer *me, void *data) {
+	return 1;
+}
+
+static uint16_t menu_get_num_rows_callback(MenuLayer *me, uint16_t section_index, void *data) {
+	return config_numOfGroups + 2;
+}
+
+static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+	char* text;
+	GBitmap* icon;
+
+	int16_t index = cell_index->row;
+
+	if (index == 0)
+	{
+		text = "Call History";
+		icon = callHistoryIcon;
+	}
+	else if (index == 1)
+	{
+		text = "All contacts";
+		icon = contactsIcon;
+	}
+	else
+	{
+		text = groupNames[index - 2];
+		icon = contactGroupIcon;
+	}
+
+
+	graphics_context_set_compositing_mode(ctx, PNG_COMPOSITING_MODE);
+	menu_cell_basic_draw(ctx, cell_layer, text, NULL, icon);
 }
 
 void main_menu_show_menu(void)
 {
 	menuLoaded = true;
 
-	mainMenuSection[0].items = mainMenuItems;
-	mainMenuSection[0].num_items = config_numOfGroups + 2;
-
-	mainMenuItems[0].title = "Call History";
-	mainMenuItems[0].icon = callHistoryIcon;
-	mainMenuItems[0].callback = menu_picked;
-
-	mainMenuItems[1].title = "All contacts";
-	mainMenuItems[1].icon = contactsIcon;
-	mainMenuItems[1].callback = menu_picked;
-
-	for (int i = 0; i < config_numOfGroups; i++)
-	{
-		mainMenuItems[i + 2].title = groupNames[i];
-		mainMenuItems[i + 2].icon = contactGroupIcon;
-		mainMenuItems[i + 2].callback = menu_picked;
-	}
-
-	reload_menu();
-
 	layer_set_hidden((Layer *) loadingLayer, true);
 	layer_set_hidden((Layer *) menuLayer, false);
 	layer_set_hidden((Layer *) quitTitle, true);
 	layer_set_hidden((Layer *) quitText, true);
-}
-
-
-static void reload_menu(void)
-{
-	Layer* topLayer = window_get_root_layer(window);
-
-	if (menuLayer != NULL)
-	{
-		layer_remove_from_parent((Layer *) menuLayer);
-		simple_menu_layer_destroy(menuLayer);
-	}
-
-	menuLayer = simple_menu_layer_create(GRect(0, 0, 144, 152), window, mainMenuSection, 1, NULL);
-
-	layer_add_child(topLayer, (Layer *) menuLayer);
 }
 
 void main_menu_close(void)
@@ -132,10 +131,12 @@ static void closing_timer(void* data)
 	app_timer_register(3000, closing_timer, NULL);
 }
 
-static void menu_picked(int index, void* context)
+static void menu_select_callback(MenuLayer *me, MenuIndex *cell_index, void *data)
 {
 	DictionaryIterator *iterator;
 	app_message_outbox_begin(&iterator);
+
+	int16_t index = cell_index->row;
 
 	dict_write_uint8(iterator, 0, 0);
 	dict_write_uint8(iterator, 1, 1);
@@ -162,10 +163,9 @@ static void receivedGroupNames(DictionaryIterator* data)
 			break;
 
 		strcpy(groupNames[groupPos], dict_find(data, 3 + i)->value->cstring);
-		mainMenuItems[groupPos + 2].title = groupNames[groupPos];
 	}
 
-	menu_layer_reload_data(simple_menu_layer_get_menu_layer(menuLayer));
+	menu_layer_reload_data(menuLayer);
 }
 
 void main_menu_data_received(int packetId, DictionaryIterator* data)
@@ -207,22 +207,44 @@ static void window_load(Window *me) {
 
 	Layer* topLayer = window_get_root_layer(me);
 
-	loadingLayer = text_layer_create(GRect(0, 0, 144, 168 - 16));
+	loadingLayer = text_layer_create(GRect(0, STATUSBAR_Y_OFFSET, 144, 168 - 16));
 	text_layer_set_text_alignment(loadingLayer, GTextAlignmentCenter);
 	text_layer_set_text(loadingLayer, "Loading...");
 	text_layer_set_font(loadingLayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(topLayer, (Layer*) loadingLayer);
 
-	quitTitle = text_layer_create(GRect(0, 70, 144, 50));
+	quitTitle = text_layer_create(GRect(0, 70 + STATUSBAR_Y_OFFSET, 144, 50));
 	text_layer_set_text_alignment(quitTitle, GTextAlignmentCenter);
 	text_layer_set_text(quitTitle, "Press back again if app does not close in several seconds");
 	layer_add_child(topLayer, (Layer*) quitTitle);
 
-	quitText = text_layer_create(GRect(0, 10, 144, 50));
+	quitText = text_layer_create(GRect(0, 10 + STATUSBAR_Y_OFFSET, 144, 50));
 	text_layer_set_text_alignment(quitText, GTextAlignmentCenter);
 	text_layer_set_text(quitText, "Quitting...\n Please wait");
 	text_layer_set_font(quitText, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(topLayer, (Layer*) quitText);
+
+	menuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, 144, 168 - 16));
+
+	// Set all the callbacks for the menu layer
+	menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){
+			.get_num_sections = menu_get_num_sections_callback,
+			.get_num_rows = menu_get_num_rows_callback,
+			.draw_row = menu_draw_row_callback,
+			.select_click = menu_select_callback,
+	});
+
+	#ifdef PBL_COLOR
+		menu_layer_set_highlight_colors(menuLayer, GColorJaegerGreen, GColorBlack);
+	#endif
+
+	menu_layer_set_click_config_onto_window(menuLayer, window);
+	layer_add_child(topLayer, (Layer*) menuLayer);
+
+#ifdef PBL_SDK_3
+		statusBar = status_bar_layer_create();
+		layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
+	#endif
 }
 
 static void window_unload(Window* me)
@@ -234,6 +256,12 @@ static void window_unload(Window* me)
 	text_layer_destroy(loadingLayer);
 	text_layer_destroy(quitTitle);
 	text_layer_destroy(quitText);
+
+	menu_layer_destroy(menuLayer);
+
+	#ifdef PBL_SDK_3
+		status_bar_layer_destroy(statusBar);
+	#endif
 
 	window_destroy(me);
 }

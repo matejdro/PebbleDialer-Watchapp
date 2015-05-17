@@ -18,6 +18,10 @@ static char contactNames[21][21] = {};
 
 static MenuLayer* contactsMenuLayer;
 
+#ifdef PBL_SDK_3
+	static StatusBarLayer* statusBar;
+#endif
+
 static bool filterMode;
 static bool nothingFiltered;
 
@@ -357,7 +361,7 @@ static void window_load(Window* me)
 {
 	Layer* topLayer = window_get_root_layer(window);
 
-	contactsMenuLayer = menu_layer_create(GRect(0, 0, 144, 168 - 16));
+	contactsMenuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, 144, 168 - 16));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(contactsMenuLayer, NULL, (MenuLayerCallbacks){
@@ -378,7 +382,17 @@ static void window_load(Window* me)
 	menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(-1, -1), MenuRowAlignNone, false);
 	centerIndex = 0;
 	arrayCenterPos = 0;
+
 	memset(contactNames, 0, 21 * 21);
+
+	#ifdef PBL_COLOR
+		menu_layer_set_highlight_colors(contactsMenuLayer, GColorJaegerGreen, GColorBlack);
+	#endif
+
+	#ifdef PBL_SDK_3
+		statusBar = status_bar_layer_create();
+		layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
+	#endif
 }
 
 static void window_appear(Window *me) {
@@ -388,6 +402,11 @@ static void window_appear(Window *me) {
 static void window_unload(Window* me)
 {
 	menu_layer_destroy(contactsMenuLayer);
+
+	#ifdef PBL_SDK_3
+		status_bar_layer_destroy(statusBar);
+	#endif
+
 	window_destroy(me);
 }
 
