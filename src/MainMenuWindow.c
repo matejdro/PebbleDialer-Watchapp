@@ -48,14 +48,14 @@ void main_menu_show_closing(void)
 void main_menu_show_old_watchapp(void)
 {
 	show_update_dialog();
-	text_layer_set_text(loadingLayer, "Pebble Dialer\nOutdated Watchapp \n\n Check your phone");
+	text_layer_set_text(loadingLayer, "Dialer\nOutdated Watchapp \n\n Check your phone");
 
 }
 
 void main_menu_show_old_android(void)
 {
 	show_update_dialog();
-	text_layer_set_text(loadingLayer, "Pebble Dialer\nUpdate Android App \n\n Open link:\n NO_LINK_YET");
+	text_layer_set_text(loadingLayer, "Dialer\nUpdate Android App \n\n Open link:\n bit.ly/1KhZCog");
 }
 
 static void show_update_dialog(void)

@@ -7,7 +7,7 @@
 #include "MainMenuWindow.h"
 #include "NumberPickerWindow.h"
 
-const uint16_t PROTOCOL_VERSION = 5;
+const uint16_t PROTOCOL_VERSION = 6;
 
 static uint8_t curWindow = 0;
 static bool gotConfig = false;
@@ -190,6 +190,7 @@ static void data_delivered(DictionaryIterator *sent, void *context) {
 int main() {
 	app_message_register_outbox_sent(data_delivered);
 	app_message_register_inbox_received(received_data);
+
 	app_message_open(124, 50);
 
 	DictionaryIterator *iterator;
@@ -197,6 +198,12 @@ int main() {
 	dict_write_uint8(iterator, 0, 0);
 	dict_write_uint8(iterator, 1, 0);
 	dict_write_uint16(iterator, 2, PROTOCOL_VERSION);
+	#ifdef PBL_APLITE
+		dict_write_uint8(iterator, 3, 0);
+	#else
+		dict_write_uint8(iterator, 3, 1);
+	#endif
+
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_message_outbox_send();
 

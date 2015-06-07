@@ -287,7 +287,7 @@ static void window_load(Window* me) {
 	#endif
 
 
-#ifdef PBL_SDK_3
+	#ifdef PBL_SDK_3
 		statusBar = status_bar_layer_create();
 		layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
 	#endif

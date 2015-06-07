@@ -1,10 +1,10 @@
 {
   "uuid": "158a074d-85ce-43d2-ab7d-14416ddc1058",
-  "shortName": "Pebble Dialer",
-  "longName": "Pebble Dialer",
+  "shortName": "Dialer",
+  "longName": "Dialer for Pebble",
   "companyName": "matejdro",
   "versionCode": 2,
-  "versionLabel": "2.21",
+  "versionLabel": "2.22",
   "watchapp": {
     "watchface": false
   },
