@@ -89,22 +89,21 @@ static void updateTimer(void)
 
 static void updateTextFields(void)
 {
+	stroked_text_layer_set_text(callerNumber, callerNumberText);
+
 	if (nameExist)
 	{
 		stroked_text_layer_set_text(callerName, callerNameText);
 		stroked_text_layer_set_text(callerNumType, callerNumTypeText);
-		stroked_text_layer_set_text(callerNumber, callerNumberText);
 
-		layer_set_hidden((Layer * ) callerNumType, false);
-		layer_set_hidden((Layer * ) callerNumber, false);
+		layer_set_hidden(stroked_text_layer_get_layer(callerNumType), false);
 
 	}
 	else
 	{
 		stroked_text_layer_set_text(callerName, callerNumberText);
 
-		layer_set_hidden((Layer * ) callerNumType, true);
-		layer_set_hidden((Layer * ) callerNumber, true);
+		layer_set_hidden(stroked_text_layer_get_layer(callerNumType), true);
 	}
 
 	if (callEstablished)
