@@ -16,6 +16,7 @@ bool config_dontClose;
 bool config_noMenu;
 uint8_t config_numOfGroups;
 bool config_noFilterGroups;
+bool config_lightCallWindow;
 
 bool closingMode;
 
@@ -77,6 +78,7 @@ static void received_config(DictionaryIterator *received)
 	config_noMenu = (data[2] & 0x01) != 0;
 	config_dontClose = (data[2] & 0x02) != 0;
 	config_noFilterGroups = (data[2] & 0x04) != 0;
+	config_lightCallWindow = (data[2] & 0x08) != 0;
 	config_numOfGroups = data[3];
 
 	gotConfig = true;

@@ -29,6 +29,7 @@ extern bool config_dontClose;
 extern uint8_t config_numOfGroups;
 extern bool config_noMenu;
 extern bool config_noFilterGroups;
+extern bool config_lightCallWindow;
 
 extern bool closingMode;
 

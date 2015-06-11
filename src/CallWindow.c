@@ -342,6 +342,12 @@ static void second_tick()
 	}
 }
 
+static void window_show(Window* me)
+{
+	if (config_lightCallWindow)
+		light_enable_interaction();
+}
+
 static void window_load(Window* me)
 {
 	Layer* topLayer = window_get_root_layer(window);
@@ -445,7 +451,8 @@ void call_window_init(void)
 
 	window_set_window_handlers(window, (WindowHandlers) {
 		.load = (WindowHandler) window_load,
-		.unload = (WindowHandler) window_unload
+		.unload = (WindowHandler) window_unload,
+		.appear = window_show
 
 	});
 
