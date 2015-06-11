@@ -5,6 +5,7 @@
 #include "PebbleDialer.h"
 #include "MainMenuWindow.h"
 #include "StrokedTextLayer.h"
+#include "ActionsMenu.h"
 
 static Window* window;
 
@@ -128,35 +129,94 @@ static void sendAction(int buttonId)
 	app_message_outbox_send();
 }
 
+static void sendMenuPick(uint8_t buttonId)
+{
+	DictionaryIterator *iterator;
+	app_message_outbox_begin(&iterator);
+
+	dict_write_uint8(iterator, 0, 5);
+	dict_write_uint8(iterator, 1, 0);
+	dict_write_uint8(iterator, 2, buttonId);
+
+	app_message_outbox_send();
+}
+
 static void button_up_press(ClickRecognizerRef recognizer, Window *window)
 {
+	if (actions_menu_is_displayed())
+	{
+		actions_menu_move_up();
+		return;
+	}
+
 	sendAction(0);
 }
 
 static void button_select_press(ClickRecognizerRef recognizer, Window *window)
 {
+	if (actions_menu_is_displayed())
+	{
+		sendMenuPick(actions_menu_get_selected_index());
+		actions_menu_hide();
+		return;
+	}
+
 	sendAction(1);
 }
 
 static void button_down_press(ClickRecognizerRef recognizer, Window *window)
 {
+	if (actions_menu_is_displayed())
+	{
+		actions_menu_move_down();
+		return;
+	}
+
 	sendAction(2);
 }
 
 static void button_up_hold(ClickRecognizerRef recognizer, Window *window)
 {
+	if (actions_menu_is_displayed())
+	{
+		actions_menu_move_up();
+		return;
+	}
+
 	sendAction(3);
 }
 
 static void button_select_hold(ClickRecognizerRef recognizer, Window *window)
 {
+	if (actions_menu_is_displayed())
+	{
+		return;
+	}
+
 	sendAction(4);
 }
 
 static void button_down_hold(ClickRecognizerRef recognizer, Window *window)
 {
+	if (actions_menu_is_displayed())
+	{
+		actions_menu_move_down();
+		return;
+	}
+
 	sendAction(5);
 }
+
+static void button_back_press(ClickRecognizerRef recognizer, void* context)
+{
+	if (actions_menu_is_displayed())
+	{
+		actions_menu_hide();
+	}
+	else
+		window_stack_pop(true);
+}
+
 
 static void shake(AccelAxisType axis, int32_t direction)
 {
@@ -173,36 +233,40 @@ static void config_provider_callscreen(void* context) {
 	window_long_click_subscribe(BUTTON_ID_UP, 700, (ClickHandler) button_up_hold, NULL);
 	window_long_click_subscribe(BUTTON_ID_SELECT, 700, (ClickHandler) button_select_hold, NULL);
 	window_long_click_subscribe(BUTTON_ID_DOWN, 700, (ClickHandler) button_down_hold, NULL);
+	window_single_click_subscribe(BUTTON_ID_BACK, (ClickHandler) button_back_press);
+
 }
 
-void call_window_data_received(uint8_t id, DictionaryIterator *received) {
-	if (id == 0)
+void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterator *received) {
+	if (module == 1)
 	{
-		uint8_t* flags = dict_find(received, 4)->value->data;
-		callEstablished = flags[0] == 1;
-		nameExist = flags[1] == 1;
-		vibrate = flags[5] == 1;
-
-		uint8_t topIcon = flags[2];
-		uint8_t middleIcon = flags[3];
-		uint8_t bottomIcon = flags[4];
-
-		action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, *indexedIcons[topIcon]);
-		action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, *indexedIcons[middleIcon]);
-		action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, *indexedIcons[bottomIcon]);
-
-		strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
-		if (nameExist)
+		if (packet == 0)
 		{
-			strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
-		}
+			uint8_t* flags = dict_find(received, 4)->value->data;
+			callEstablished = flags[0] == 1;
+			nameExist = flags[1] == 1;
+			vibrate = flags[5] == 1;
 
-		if (callEstablished)
-			elapsedTime = dict_find(received, 5)->value->uint16;
+			uint8_t topIcon = flags[2];
+			uint8_t middleIcon = flags[3];
+			uint8_t bottomIcon = flags[4];
 
-		updateTextFields();
+			action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, *indexedIcons[topIcon]);
+			action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, *indexedIcons[middleIcon]);
+			action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, *indexedIcons[bottomIcon]);
 
-		#ifdef PBL_COLOR
+			strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
+			if (nameExist)
+			{
+				strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
+			}
+
+			if (callEstablished)
+				elapsedTime = dict_find(received, 5)->value->uint16;
+
+			updateTextFields();
+
+#ifdef PBL_COLOR
 			Tuple* callerImageSizeTuple = dict_find(received, 7);
 
 			if (callerImageSizeTuple != NULL)
@@ -213,42 +277,48 @@ void call_window_data_received(uint8_t id, DictionaryIterator *received) {
 				bitmapReceivingBuffer = malloc(callerImageSize);
 				bitmapReceivingBufferHead = 0;
 			}
-		#endif
-	}
-	else if (id == 1)
-	{
-		strcpy(callerNameText, dict_find(received, 2)->value->cstring);
-		stroked_text_layer_set_text(callerName, callerNameText);
-	}
-#ifdef PBL_COLOR
-	else if (id == 2)
-	{
-		if (bitmapReceivingBuffer == NULL)
-			return;
-
-		uint8_t* buffer = dict_find(received, 2)->value->data;
-		uint16_t bufferSize = callerImageSize - bitmapReceivingBufferHead;
-		bool finished = true;
-		if (bufferSize > 116)
-		{
-			finished = false;
-			bufferSize = 116;
-		}
-
-		memcpy(&bitmapReceivingBuffer[bitmapReceivingBufferHead], buffer, bufferSize);
-		bitmapReceivingBufferHead += bufferSize;
-
-
-		if (finished)
-		{
-			callerBitmap = gbitmap_create_from_png_data(bitmapReceivingBuffer, callerImageSize);
-			bitmap_layer_set_bitmap(callerBitmapLayer, callerBitmap);
-			free(bitmapReceivingBuffer);
-
-			bitmapReceivingBuffer = NULL;
-		}
-	}
 #endif
+		}
+		else if (packet == 1)
+		{
+			strcpy(callerNameText, dict_find(received, 2)->value->cstring);
+			stroked_text_layer_set_text(callerName, callerNameText);
+		}
+#ifdef PBL_COLOR
+		else if (packet == 2)
+		{
+			if (bitmapReceivingBuffer == NULL)
+				return;
+
+			uint8_t* buffer = dict_find(received, 2)->value->data;
+			uint16_t bufferSize = callerImageSize - bitmapReceivingBufferHead;
+			bool finished = true;
+			if (bufferSize > 116)
+			{
+				finished = false;
+				bufferSize = 116;
+			}
+
+			memcpy(&bitmapReceivingBuffer[bitmapReceivingBufferHead], buffer, bufferSize);
+			bitmapReceivingBufferHead += bufferSize;
+
+
+			if (finished)
+			{
+				callerBitmap = gbitmap_create_from_png_data(bitmapReceivingBuffer, callerImageSize);
+				bitmap_layer_set_bitmap(callerBitmapLayer, callerBitmap);
+				free(bitmapReceivingBuffer);
+
+				bitmapReceivingBuffer = NULL;
+			}
+		}
+#endif
+	}
+	else if (module == 5 && packet == 0)
+	{
+		actions_menu_got_items(received);
+	}
+
 }
 
 static void vibration_stopped(void* data)
@@ -314,6 +384,8 @@ static void window_load(Window* me)
 		layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
 	#endif
 
+	actions_menu_init();
+	actions_menu_attach(topLayer);
 
 	tick_timer_service_subscribe(SECOND_UNIT, (TickHandler) second_tick);
 	accel_tap_service_subscribe(shake);
@@ -354,6 +426,8 @@ static void window_unload(Window* me)
 
 		bitmap_layer_destroy(callerBitmapLayer);
 	#endif
+
+	actions_menu_deinit();
 
 	window_destroy(me);
 

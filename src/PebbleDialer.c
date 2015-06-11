@@ -7,7 +7,7 @@
 #include "MainMenuWindow.h"
 #include "NumberPickerWindow.h"
 
-const uint16_t PROTOCOL_VERSION = 6;
+const uint16_t PROTOCOL_VERSION = 7;
 
 static uint8_t curWindow = 0;
 static bool gotConfig = false;
@@ -122,7 +122,7 @@ static void received_data(DictionaryIterator *received, void *context) {
 
 		main_menu_data_received(packetId, received);
 	}
-	else if (destModule == 1)
+	else if (destModule == 1 || destModule == 5)
 	{
 		if (curWindow != 1)
 		{
@@ -132,7 +132,7 @@ static void received_data(DictionaryIterator *received, void *context) {
 				return;
 		}
 
-		call_window_data_received(packetId, received);
+		call_window_data_received(destModule, packetId, received);
 	}
 	else if (destModule == 2)
 	{

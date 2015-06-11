@@ -9,6 +9,6 @@
 #define CALLWINDOW_H_
 
 void call_window_init();
-void call_window_data_received(uint8_t id, DictionaryIterator *received);
+void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterator *received);
 
 #endif /* CALLWINDOW_H_ */
