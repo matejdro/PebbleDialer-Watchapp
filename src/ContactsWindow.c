@@ -273,7 +273,6 @@ static void filter_back_button(ClickRecognizerRef recognizer, Window *window)
 
 static void filter_center_long(ClickRecognizerRef recognizer, Window *window)
 {
-
 	requestContacts(8);
 	contacts_window_stop_filtering();
 }
@@ -293,8 +292,6 @@ static void menu_center_button(ClickRecognizerRef recognizer, Window *window)
 static void menu_down_button(ClickRecognizerRef recognizer, Window *window) {
 	menu_layer_set_selected_next(contactsMenuLayer, false, MenuRowAlignCenter, true);
 }
-
-
 
 static void filter_config_provider(void* context) {
 	window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) filter_up_button);
