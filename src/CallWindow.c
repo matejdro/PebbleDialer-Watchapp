@@ -98,6 +98,7 @@ static void updateTextFields(void)
 		stroked_text_layer_set_text(callerNumType, callerNumTypeText);
 
 		layer_set_hidden(stroked_text_layer_get_layer(callerNumType), false);
+		layer_set_hidden(stroked_text_layer_get_layer(callerNumber), false);
 
 	}
 	else
@@ -105,6 +106,7 @@ static void updateTextFields(void)
 		stroked_text_layer_set_text(callerName, callerNumberText);
 
 		layer_set_hidden(stroked_text_layer_get_layer(callerNumType), true);
+		layer_set_hidden(stroked_text_layer_get_layer(callerNumber), true);
 	}
 
 	if (callEstablished)
@@ -281,6 +283,9 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 		}
 		else if (packet == 1)
 		{
+			if (!nameExist)
+				return;
+
 			strcpy(callerNameText, dict_find(received, 2)->value->cstring);
 			stroked_text_layer_set_text(callerName, callerNameText);
 		}
