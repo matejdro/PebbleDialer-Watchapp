@@ -95,8 +95,8 @@ static void stroked_text_layer_paint(Layer* layer, GContext *ctx)
     graphics_context_set_text_color(ctx, strokedTextLayer->strokeColor);
     graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
     graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
-    graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 2, origin.y, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
-    graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x, origin.y + 2, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
+    graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 2, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
+    graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y + 2, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
 
     graphics_context_set_text_color(ctx, strokedTextLayer->textColor);
     graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
