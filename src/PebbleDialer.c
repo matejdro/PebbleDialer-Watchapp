@@ -18,6 +18,7 @@ bool config_noMenu;
 uint8_t config_numOfGroups;
 bool config_noFilterGroups;
 bool config_lightCallWindow;
+bool config_dontVibrateWhenCharging;
 
 bool closingMode;
 
@@ -80,13 +81,21 @@ static void received_config(DictionaryIterator *received)
 	config_dontClose = (data[2] & 0x02) != 0;
 	config_noFilterGroups = (data[2] & 0x04) != 0;
 	config_lightCallWindow = (data[2] & 0x08) != 0;
+	config_dontVibrateWhenCharging = (data[2] & 0x10) != 0;
+
 	config_numOfGroups = data[3];
+
 
 	gotConfig = true;
 
 	if (!config_noMenu)
 		main_menu_show_menu();
 
+}
+
+bool canVibrate(void)
+{
+	return !config_dontVibrateWhenCharging || !battery_state_service_peek().is_plugged;
 }
 
 static void received_data(DictionaryIterator *received, void *context) {

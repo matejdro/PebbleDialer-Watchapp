@@ -30,11 +30,14 @@ extern uint8_t config_numOfGroups;
 extern bool config_noMenu;
 extern bool config_noFilterGroups;
 extern bool config_lightCallWindow;
+extern bool config_dontVibrateWhenCharging;
 
 extern bool closingMode;
+
 
 void setCurWindow(int window);
 void switchWindow(int window);
 void closeApp(void);
+bool canVibrate(void);
 
 #endif /* PEBBLEDIALER_H_ */

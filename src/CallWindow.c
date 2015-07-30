@@ -247,7 +247,7 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			uint8_t* flags = dict_find(received, 4)->value->data;
 			callEstablished = flags[0] == 1;
 			nameExist = flags[1] == 1;
-			vibrate = flags[5] == 1;
+			vibrate = flags[5] == 1 && canVibrate();
 
 			uint8_t topIcon = flags[2];
 			uint8_t middleIcon = flags[3];
