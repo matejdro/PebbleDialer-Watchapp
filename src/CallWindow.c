@@ -10,7 +10,7 @@
 static Window* window;
 
 static StrokedTextLayer* title;
-static char timerText[6];
+static char timerText[10];
 
 static StrokedTextLayer* callerName;
 static StrokedTextLayer* callerNumType;
@@ -66,23 +66,29 @@ static void convertTwoNumber(int number, char* string, int offset)
 		string[offset] = '0';
 		string[offset + 1] = iConvert[0];
 	}
+	else if (number < 100)
+	{
+		string[offset] = iConvert[0];
+		string[offset + 1] = iConvert[1];
+	}
 	else
 	{
 		string[offset] = iConvert[0];
 		string[offset + 1] = iConvert[1];
+		string[offset + 2] = iConvert[2];
 	}
 }
 
 static void updateTimer(void)
 {
-	int minutes = elapsedTime / 60;
-	int seconds = elapsedTime % 60;
-	if (minutes > 99)
-		minutes = 99;
+	uint16_t minutes = elapsedTime / 60;
+	uint16_t seconds = elapsedTime % 60;
+
+	uint8_t extraOffset = minutes > 99 ? 1 : 0;
 
 	convertTwoNumber(minutes, timerText, 0);
-	timerText[2] = ':';
-	convertTwoNumber(seconds, timerText, 3);
+	timerText[2 + extraOffset] = ':';
+	convertTwoNumber(seconds, timerText, 3 + extraOffset);
 
 	stroked_text_layer_set_text(title, timerText);
 
