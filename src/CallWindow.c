@@ -319,11 +319,6 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 		}
 #endif
 	}
-	else if (module == 5 && packet == 0)
-	{
-		actions_menu_got_items(received);
-	}
-
 }
 
 static void vibration_stopped(void* data)

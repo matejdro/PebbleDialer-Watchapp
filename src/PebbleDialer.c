@@ -6,6 +6,7 @@
 #include "CallWindow.h"
 #include "MainMenuWindow.h"
 #include "NumberPickerWindow.h"
+#include "ActionsMenu.h"
 
 const uint16_t PROTOCOL_VERSION = 7;
 
@@ -124,7 +125,7 @@ static void received_data(DictionaryIterator *received, void *context) {
 
 		main_menu_data_received(packetId, received);
 	}
-	else if (destModule == 1 || destModule == 5)
+	else if (destModule == 1)
 	{
 		if (curWindow != 1)
 		{
@@ -171,6 +172,10 @@ static void received_data(DictionaryIterator *received, void *context) {
 		}
 
 		number_picker_window_data_received(packetId, received);
+	}
+	else if (destModule == 5)
+	{
+		actions_menu_got_data(packetId, received);
 	}
 }
 

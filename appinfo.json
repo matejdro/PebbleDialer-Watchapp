@@ -76,6 +76,11 @@
         "type": "png",
         "name": "MISSED_CALL",
         "file": "missedcall.png"
+      },
+      {
+        "type": "png",
+        "name": "MESSAGE",
+        "file": "message.png"
       }
     ]
   },

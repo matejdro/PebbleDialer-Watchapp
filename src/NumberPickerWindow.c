@@ -1,8 +1,10 @@
+#include <pebble.h>
 #include "pebble.h"
 #include "pebble_fonts.h"
 
 #include "PebbleDialer.h"
 #include "util.h"
+#include "ActionsMenu.h"
 
 static Window* window;
 
@@ -13,6 +15,10 @@ static int16_t centerIndex = 0;
 
 static int16_t pickedNumber = -1;
 
+static GBitmap* callIcon;
+static GBitmap* messageIcon;
+
+uint8_t numberActions[20] = {};
 char numberTypes[21][16] = {};
 char numbers[21][16] = {};
 
@@ -21,6 +27,9 @@ MenuLayer* menuLayer;
 #ifdef PBL_SDK_3
 	StatusBarLayer* statusBar;
 #endif
+
+static void sendMenuPick(uint8_t buttonId);
+static void sendPickedNumber(int16_t pos);
 
 static int8_t convertToArrayPos(uint16_t index)
 {
@@ -71,6 +80,24 @@ static void setNumber(uint16_t index, char *name)
 		return;
 
 	strcpy(numbers[arrayPos],name);
+}
+
+static uint8_t getNumberAction(uint16_t index)
+{
+	int8_t arrayPos = convertToArrayPos(index);
+	if (arrayPos < 0)
+		return 0;
+
+	return numberActions[arrayPos];
+}
+
+static void setNumberAction(uint16_t index, uint8_t action)
+{
+	int8_t arrayPos = convertToArrayPos(index);
+	if (arrayPos < 0)
+		return;
+
+	numberActions[arrayPos] = action;
 }
 
 static void shiftArray(int newIndex)
@@ -145,6 +172,52 @@ static uint8_t getEmptySpacesUp(void)
 	return spaces;
 }
 
+static void button_up_press(ClickRecognizerRef recognizer, Window *window)
+{
+	if (actions_menu_is_displayed())
+	{
+		actions_menu_move_up();
+		return;
+	}
+
+	menu_layer_set_selected_next(menuLayer, true, MenuRowAlignCenter, true);
+}
+
+static void button_select_press(ClickRecognizerRef recognizer, Window *window)
+{
+	if (actions_menu_is_displayed())
+	{
+		sendMenuPick(actions_menu_get_selected_index());
+		actions_menu_hide();
+		return;
+	}
+
+	sendPickedNumber(menu_layer_get_selected_index(menuLayer).row);
+}
+
+static void button_down_press(ClickRecognizerRef recognizer, Window *window)
+{
+	if (actions_menu_is_displayed())
+	{
+		actions_menu_move_down();
+		return;
+	}
+
+	menu_layer_set_selected_next(menuLayer, false, MenuRowAlignCenter, false);
+}
+
+static void sendMenuPick(uint8_t buttonId)
+{
+	DictionaryIterator *iterator;
+	app_message_outbox_begin(&iterator);
+
+	dict_write_uint8(iterator, 0, 5);
+	dict_write_uint8(iterator, 1, 0);
+	dict_write_uint8(iterator, 2, buttonId);
+
+	app_message_outbox_send();
+}
+
 static void requestNumbers(uint16_t pos)
 {
 	DictionaryIterator *iterator;
@@ -215,18 +288,17 @@ static void menu_pos_changed(struct MenuLayer *menu_layer, MenuIndex new_index, 
 
 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
-	menu_cell_basic_draw(ctx, cell_layer, getNumberType(cell_index->row), getNumber(cell_index->row), NULL);
+	GBitmap* icon = getNumberAction(cell_index->row) == 0 ? callIcon : messageIcon;
+
+	menu_cell_basic_draw(ctx, cell_layer, getNumberType(cell_index->row), getNumber(cell_index->row), icon);
 }
 
-
-static void menu_select_callback(MenuLayer *me, MenuIndex *cell_index, void *data) {
-	sendPickedNumber(cell_index->row);
-}
 
 static void receivedNumbers(DictionaryIterator* data)
 {
 	uint16_t offset = dict_find(data, 2)->value->uint16;
 	numMaxNumbers = dict_find(data, 3)->value->uint16;
+	uint8_t* actions = dict_find(data, 8)->value->data;
 	for (int i = 0; i < 2; i++)
 	{
 		uint16_t groupPos = offset + i;
@@ -236,6 +308,7 @@ static void receivedNumbers(DictionaryIterator* data)
 
 		setNumberType(groupPos, dict_find(data, 4 + i)->value->cstring);
 		setNumber(groupPos, dict_find(data, 6 + i)->value->cstring);
+		setNumberAction(groupPos, actions[i]);
 	}
 
 	menu_layer_reload_data(menuLayer);
@@ -263,6 +336,13 @@ void number_picker_window_data_sent(void)
 	}
 }
 
+static void config_provider(void* context) {
+	window_single_repeating_click_subscribe(BUTTON_ID_UP, 200, (ClickHandler) button_up_press);
+	window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 200, (ClickHandler) button_down_press);
+	window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) button_select_press);
+}
+
+
 static void window_load(Window* me) {
 	Layer* topLayer = window_get_root_layer(window);
 
@@ -274,11 +354,11 @@ static void window_load(Window* me) {
 				.get_num_rows = menu_get_num_rows_callback,
 				.get_cell_height = menu_get_row_height_callback,
 				.draw_row = menu_draw_row_callback,
-				.select_click = menu_select_callback,
 				.selection_changed = menu_pos_changed
 	});
 
 	menu_layer_set_click_config_onto_window(menuLayer, window);
+	window_set_click_config_provider(window, config_provider);
 
 	layer_add_child(topLayer, (Layer*) menuLayer);
 
@@ -291,6 +371,12 @@ static void window_load(Window* me) {
 		statusBar = status_bar_layer_create();
 		layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
 	#endif
+
+	callIcon = gbitmap_create_with_resource(RESOURCE_ID_ICON);
+	messageIcon = gbitmap_create_with_resource(RESOURCE_ID_MESSAGE);
+
+	actions_menu_init();
+	actions_menu_attach(topLayer);
 }
 
 static void window_appear(Window* me)
@@ -305,6 +391,11 @@ static void window_unload(Window* me)
 	#ifdef PBL_SDK_3
 		status_bar_layer_destroy(statusBar);
 	#endif
+
+	gbitmap_destroy(callIcon);
+	gbitmap_destroy(messageIcon);
+
+	actions_menu_deinit();
 
 	window_destroy(me);
 }
