@@ -15,7 +15,8 @@ static bool actionsMenuDisplayed = false;
 static char actions[20][20];
 static uint8_t numOfActions = 0;
 
-static bool actionsMenuInited = false;
+static uint8_t initCounter = 0;
+
 
 static void menu_paint_background(Layer *layer, GContext *ctx)
 {
@@ -54,7 +55,7 @@ void actions_menu_reset_text(void)
 
 bool actions_menu_is_displayed(void)
 {
-	return actionsMenuDisplayed && actionsMenuInited;
+	return actionsMenuDisplayed;
 }
 
 int16_t actions_menu_get_selected_index(void)
@@ -161,9 +162,9 @@ bool actions_menu_got_data(uint8_t packetId, DictionaryIterator* dictionary)
 
 void actions_menu_init(void)
 {
-	if (actionsMenuInited)
+	initCounter++;
+	if (initCounter > 1)
 		return;
-	actionsMenuInited = true;
 
 	menuBackground = layer_create(GRect(9, 9 + STATUSBAR_Y_OFFSET, 144 - 18, 168 - 34));
 	layer_set_update_proc(menuBackground, menu_paint_background);
@@ -192,10 +193,14 @@ void actions_menu_attach(Layer* layer)
 
 void actions_menu_deinit(void)
 {
-	if (!actionsMenuInited)
+	if (initCounter > 0)
+		initCounter--;
+
+	if (initCounter > 0)
 		return;
-	actionsMenuInited = false;
 
 	layer_destroy(menuBackground);
 	menu_layer_destroy(menu);
+
+	actionsMenuDisplayed = false;
 }
