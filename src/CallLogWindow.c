@@ -266,10 +266,10 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
 	graphics_context_set_text_color(ctx, GColorBlack);
 
-	graphics_draw_text(ctx, getName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(35, 0, 144 - 30, 20), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-	graphics_draw_text(ctx, getDate(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(35, 20, 144 - 30, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+	graphics_draw_text(ctx, getName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(35, 0, SCREEN_WIDTH - 30, 20), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+	graphics_draw_text(ctx, getDate(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(35, 20, SCREEN_WIDTH - 30, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 	if (hasNumberType)
-		graphics_draw_text(ctx, getNumber(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), GRect(35, 35, 144 - 30, 20), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+		graphics_draw_text(ctx, getNumber(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), GRect(35, 35, SCREEN_WIDTH - 30, 20), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
 	GBitmap* image;
 	switch (getType(cell_index->row))
@@ -347,7 +347,7 @@ static void window_appear(Window *me) {
 static void window_load(Window *me) {
 	Layer* topLayer = window_get_root_layer(window);
 
-	menuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, 144, 168 - 16));
+	menuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){
