@@ -213,7 +213,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 			return;
 
 	graphics_context_set_text_color(ctx, GColorBlack);
-	graphics_draw_text(ctx, getContactName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, SCREEN_WIDTH - 3, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+	graphics_draw_text(ctx, getContactName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, SCREEN_WIDTH - 3, 23), GTextOverflowModeTrailingEllipsis, PBL_IF_RECT_ELSE(GTextAlignmentLeft, GTextAlignmentCenter), NULL);
 }
 
 static void filter(int button)
