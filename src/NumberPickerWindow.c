@@ -290,7 +290,14 @@ static void menu_pos_changed(struct MenuLayer *menu_layer, MenuIndex new_index, 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
 	GBitmap* icon = getNumberAction(cell_index->row) == 0 ? callIcon : messageIcon;
 
+#ifdef PBL_ROUND
+	char title[32];
+	strncpy(title, icon == callIcon ? "[Call] " : "[Msg] ", sizeof title - 1);
+	strncat(title, getNumberType(cell_index->row), sizeof title - 1 - strlen(title));
+	menu_cell_basic_draw(ctx, cell_layer, title, getNumber(cell_index->row), icon);
+#else
 	menu_cell_basic_draw(ctx, cell_layer, getNumberType(cell_index->row), getNumber(cell_index->row), icon);
+#endif
 }
 
 
@@ -346,7 +353,7 @@ static void config_provider(void* context) {
 static void window_load(Window* me) {
 	Layer* topLayer = window_get_root_layer(window);
 
-	menuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, 144, 168 - 16));
+	menuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){

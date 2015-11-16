@@ -356,26 +356,28 @@ static void window_show(Window* me)
 
 static void window_load(Window* me)
 {
+	#define LEFT_MARGIN (PBL_IF_RECT_ELSE(5, 25))
+
 	Layer* topLayer = window_get_root_layer(window);
 
 	#ifdef  PBL_COLOR
-		callerBitmapLayer = bitmap_layer_create(GRect(0,STATUSBAR_Y_OFFSET, 144 - ACTION_BAR_WIDTH, 152));
+		callerBitmapLayer = bitmap_layer_create(GRect(PBL_IF_RECT_ELSE(0, 25),STATUSBAR_Y_OFFSET, SCREEN_WIDTH - ACTION_BAR_WIDTH - PBL_IF_RECT_ELSE(0, 25), HEIGHT_BELOW_STATUSBAR));
 		bitmap_layer_set_alignment(callerBitmapLayer, GAlignCenter);
 		layer_add_child(topLayer, bitmap_layer_get_layer(callerBitmapLayer));
 	#endif
 
-	title = stroked_text_layer_create(GRect(5, STATUSBAR_Y_OFFSET,144 - ACTION_BAR_WIDTH - 5,30));
+	title = stroked_text_layer_create(GRect(LEFT_MARGIN, STATUSBAR_Y_OFFSET, SCREEN_WIDTH - ACTION_BAR_WIDTH - LEFT_MARGIN,30));
 	stroked_text_layer_set_font(title, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(topLayer, stroked_text_layer_get_layer(title));
 
-	callerName = stroked_text_layer_create(GRect(5, 30 + STATUSBAR_Y_OFFSET, 144 - ACTION_BAR_WIDTH - 5, 90));
+	callerName = stroked_text_layer_create(GRect(LEFT_MARGIN, 30 + STATUSBAR_Y_OFFSET,  SCREEN_WIDTH - ACTION_BAR_WIDTH - LEFT_MARGIN, 90));
 	stroked_text_layer_set_font(callerName, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(topLayer, stroked_text_layer_get_layer(callerName));
 
-	callerNumType = stroked_text_layer_create(GRect(5,100 + STATUSBAR_Y_OFFSET,144 - ACTION_BAR_WIDTH - 5,20));
+	callerNumType = stroked_text_layer_create(GRect(LEFT_MARGIN,100 + STATUSBAR_Y_OFFSET, SCREEN_WIDTH - ACTION_BAR_WIDTH - LEFT_MARGIN,20));
 	layer_add_child(topLayer, stroked_text_layer_get_layer(callerNumType));
 
-	callerNumber = stroked_text_layer_create(GRect(5,122 + STATUSBAR_Y_OFFSET,144 - ACTION_BAR_WIDTH - 5,30));
+	callerNumber = stroked_text_layer_create(GRect(LEFT_MARGIN,122 + STATUSBAR_Y_OFFSET, SCREEN_WIDTH - ACTION_BAR_WIDTH - LEFT_MARGIN,30));
 	layer_add_child(topLayer, stroked_text_layer_get_layer(callerNumber));
 
 	buttonAnswer = gbitmap_create_with_resource(RESOURCE_ID_ANSWER);
