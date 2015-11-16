@@ -19,8 +19,8 @@ static GBitmap* callIcon;
 static GBitmap* messageIcon;
 
 uint8_t numberActions[20] = {};
-char numberTypes[21][16] = {};
-char numbers[21][16] = {};
+char numberTypes[21][21] = {};
+char numbers[21][21] = {};
 
 MenuLayer* menuLayer;
 
