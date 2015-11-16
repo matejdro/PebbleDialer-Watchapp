@@ -140,7 +140,7 @@ bool actions_menu_got_data(uint8_t packetId, DictionaryIterator* dictionary)
 		if (displayTertiaryText)
 		{
 			actions_menu_hide();
-			tertiary_text_window_init();
+			tertiary_text_prompt("Enter SMS:", NULL, NULL);
 		}
 		else if (!actions_menu_is_displayed())
 		{
