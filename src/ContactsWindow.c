@@ -369,6 +369,10 @@ static void window_load(Window* me)
 		.selection_changed = menu_pos_changed
 	});
 
+	#ifdef PBL_SDK_3
+		menu_layer_set_center_focused(contactsMenuLayer, false);
+	#endif
+
 	layer_add_child(topLayer, (Layer*) contactsMenuLayer);
 
 	window_set_click_config_provider(window, filter_config_provider);
