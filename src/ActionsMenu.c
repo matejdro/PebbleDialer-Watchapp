@@ -9,6 +9,11 @@
 #include "tertiary_text.h"
 #include "PebbleDialer.h"
 
+#define MENU_X_OFFSET (PBL_IF_RECT_ELSE(9, 27))
+#define MENU_Y_OFFSET (PBL_IF_RECT_ELSE(9 + STATUSBAR_Y_OFFSET, 27))
+#define MENU_WIDTH    (144 - 18)
+#define MENU_HEIGHT   (PBL_IF_RECT_ELSE(168 - 34, 126))
+
 static Layer* menuBackground;
 static MenuLayer* menu;
 static bool actionsMenuDisplayed = false;
@@ -21,9 +26,9 @@ static uint8_t initCounter = 0;
 static void menu_paint_background(Layer *layer, GContext *ctx)
 {
 	graphics_context_set_fill_color(ctx, GColorBlack);
-	graphics_fill_rect(ctx, GRect(0, 0, 144 - 18, 168 - 34), 0, GCornerNone);
+	graphics_fill_rect(ctx, GRect(0, 0, MENU_WIDTH, MENU_HEIGHT), 0, GCornerNone);
 	graphics_context_set_fill_color(ctx, GColorWhite);
-	graphics_fill_rect(ctx, GRect(1, 1, 144 - 20, 168 - 36), 0, GCornerNone);
+	graphics_fill_rect(ctx, GRect(1, 1, MENU_WIDTH - 2, MENU_HEIGHT - 2), 0, GCornerNone);
 }
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *me, void *data) {
@@ -41,7 +46,7 @@ static int16_t menu_get_row_height_callback(MenuLayer *me,  MenuIndex *cell_inde
 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
 	graphics_context_set_text_color(ctx, GColorBlack);
-	graphics_draw_text(ctx, actions[cell_index->row], fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(5, 0, 144 - 20 - 10, 27), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+	graphics_draw_text(ctx, actions[cell_index->row], fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(5, 0, MENU_WIDTH - 12, 27), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 
 
@@ -166,11 +171,11 @@ void actions_menu_init(void)
 	if (initCounter > 1)
 		return;
 
-	menuBackground = layer_create(GRect(9, 9 + STATUSBAR_Y_OFFSET, 144 - 18, 168 - 34));
+	menuBackground = layer_create(GRect(MENU_X_OFFSET, MENU_Y_OFFSET, MENU_WIDTH, MENU_HEIGHT));
 	layer_set_update_proc(menuBackground, menu_paint_background);
 	layer_set_hidden((Layer*) menuBackground, true);
 
-	menu = menu_layer_create(GRect(1, 1, 144 - 20, 168 - 36));
+	menu = menu_layer_create(GRect(1, 1, MENU_WIDTH - 2, MENU_HEIGHT - 2));
 
 	menu_layer_set_callbacks(menu, NULL, (MenuLayerCallbacks) {
 		.get_num_sections = menu_get_num_sections_callback,

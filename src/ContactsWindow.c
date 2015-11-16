@@ -213,7 +213,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 			return;
 
 	graphics_context_set_text_color(ctx, GColorBlack);
-	graphics_draw_text(ctx, getContactName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, 141, 23), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+	graphics_draw_text(ctx, getContactName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, SCREEN_WIDTH - 3, 23), GTextOverflowModeTrailingEllipsis, PBL_IF_RECT_ELSE(GTextAlignmentLeft, GTextAlignmentCenter), NULL);
 }
 
 static void filter(int button)
@@ -358,7 +358,7 @@ static void window_load(Window* me)
 {
 	Layer* topLayer = window_get_root_layer(window);
 
-	contactsMenuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, 144, 168 - 16));
+	contactsMenuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(contactsMenuLayer, NULL, (MenuLayerCallbacks){
