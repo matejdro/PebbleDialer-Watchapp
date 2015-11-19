@@ -112,7 +112,6 @@ static GRect moveAndCalculateTextSize(StrokedTextLayer* textLayer, int16_t yPosi
 		yPosition -= size.h;
 
 	GRect frame = GRect(0, yPosition, windowFrame.w, size.h);
-	APP_LOG(0, "Test: %d %d %d %d", frame.origin.x, frame.origin.y, frame.size.w, frame.size.h);
 	layer_set_frame(stroked_text_layer_get_layer(textLayer), frame);
 	return frame;
 }
