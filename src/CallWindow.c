@@ -104,7 +104,7 @@ static GRect moveAndCalculateTextSize(StrokedTextLayer* textLayer, int16_t yPosi
 {
 	stroked_text_layer_set_text_flow(textLayer, true);
 
-	layer_set_frame(stroked_text_layer_get_layer(textLayer), GRect(0, 0, windowFrame.w, 1000));
+	layer_set_frame(stroked_text_layer_get_layer(textLayer), GRect(0, yPosition, windowFrame.w, 1000));
 	GSize size = stroked_text_layer_get_content_size(textLayer);
 	size.h += 3;
 
