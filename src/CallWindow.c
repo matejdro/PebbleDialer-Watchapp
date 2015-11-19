@@ -106,6 +106,8 @@ static GRect moveAndCalculateTextSize(StrokedTextLayer* textLayer, int16_t yPosi
 
 	layer_set_frame(stroked_text_layer_get_layer(textLayer), GRect(0, 0, windowFrame.w, 1000));
 	GSize size = stroked_text_layer_get_content_size(textLayer);
+	size.h += 3;
+
 	if (centerY)
 		yPosition -= size.h / 2;
 	if (moveUp)
@@ -121,12 +123,12 @@ static void updateTextFields(void)
 	//Timer at the top
 	updateTimer();
 	int16_t timerY = STATUSBAR_Y_OFFSET;
-	moveAndCalculateTextSize(title, timerY, false, false);
+	GRect timerPosition = moveAndCalculateTextSize(title, timerY, false, false);
 
-	//Caller name is at dead center of the screen
+	//Caller name is below timer
 	stroked_text_layer_set_text(callerName, callerNameText);
-	int16_t nameY = windowFrame.h / 2;
-	moveAndCalculateTextSize(callerName, nameY, true, false);
+	int16_t nameY = timerPosition.origin.y + timerPosition.size.h;
+	moveAndCalculateTextSize(callerName, nameY, false, false);
 
 	//Caller number is near the bottom
 	stroked_text_layer_set_text(callerNumber, callerNumberText);
