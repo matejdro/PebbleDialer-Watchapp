@@ -102,8 +102,6 @@ static void updateTimer(void)
 
 static GRect moveAndCalculateTextSize(StrokedTextLayer* textLayer, int16_t yPosition, bool centerY, bool moveUp)
 {
-	stroked_text_layer_set_text_flow(textLayer, true);
-
 	layer_set_frame(stroked_text_layer_get_layer(textLayer), GRect(0, yPosition, windowFrame.w, 1000));
 	GSize size = stroked_text_layer_get_content_size(textLayer);
 	size.h += 3;
@@ -393,14 +391,17 @@ static void window_load(Window* me)
 
 	callerName = stroked_text_layer_create(GRectZero);
 	stroked_text_layer_set_font(callerName, fonts_get_system_font(config_getFontResource(config_fontName)));
+	stroked_text_layer_set_text_flow(callerName, true);
 	layer_add_child(topLayer, stroked_text_layer_get_layer(callerName));
 
 	callerNumType = stroked_text_layer_create(GRectZero);
 	stroked_text_layer_set_font(callerNumType, fonts_get_system_font(config_getFontResource(config_fontNumberType)));
+	stroked_text_layer_set_text_flow(callerNumType, true);
 	layer_add_child(topLayer, stroked_text_layer_get_layer(callerNumType));
 
 	callerNumber = stroked_text_layer_create(GRectZero);
 	stroked_text_layer_set_font(callerNumber, fonts_get_system_font(config_getFontResource(config_fontNumber)));
+	stroked_text_layer_set_text_flow(callerNumber, true);
 	layer_add_child(topLayer, stroked_text_layer_get_layer(callerNumber));
 
 	buttonAnswer = gbitmap_create_with_resource(RESOURCE_ID_ANSWER);
