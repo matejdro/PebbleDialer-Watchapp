@@ -131,7 +131,7 @@ static void updateTextFields(void)
 
 	//Caller number is near the bottom
 	stroked_text_layer_set_text(callerNumber, callerNumberText);
-	int16_t callerNumberY = windowFrame.h;
+	int16_t callerNumberY = windowFrame.h - 10;
 	GRect callerNumberFrame = moveAndCalculateTextSize(callerNumber, callerNumberY, false, true);
 
 	//Caller number type is above caller number
