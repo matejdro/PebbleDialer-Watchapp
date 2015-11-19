@@ -42,6 +42,12 @@ extern bool config_noMenu;
 extern bool config_noFilterGroups;
 extern bool config_lightCallWindow;
 extern bool config_dontVibrateWhenCharging;
+extern uint8_t config_fontTimer;
+extern uint8_t config_fontName;
+extern uint8_t config_fontNumberType;
+extern uint8_t config_fontNumber;
+
+const char* config_getFontResource(int id);
 
 extern bool closingMode;
 

@@ -16,6 +16,9 @@ typedef struct
     GTextOverflowMode textOverflowMode;
     GTextAlignment textAlignment;
     GFont textFont;
+#ifdef PBL_SDK_3
+    GTextAttributes* textAttributes;
+#endif
 } StrokedTextLayer;
 
 StrokedTextLayer* stroked_text_layer_create(GRect frame);
@@ -26,6 +29,8 @@ void stroked_text_layer_set_stroke_color(StrokedTextLayer *strokedTextLayer, GCo
 void stroked_text_layer_set_font(StrokedTextLayer *strokedTextLayer, GFont font);
 void stroked_text_layer_set_text_alignment(StrokedTextLayer *strokedTextLayer, GTextAlignment textAlignment);
 void stroked_text_layer_set_text_overflow_mode(StrokedTextLayer *strokedTextLayer, GTextOverflowMode overflowMode);
+void stroked_text_layer_set_text_flow(StrokedTextLayer* layer, bool enable);
+
 Layer* stroked_text_layer_get_layer(StrokedTextLayer *strokedTextLayer);
 GSize stroked_text_layer_get_content_size(StrokedTextLayer* strokedTextLayer);
 

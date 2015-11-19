@@ -19,8 +19,39 @@ uint8_t config_numOfGroups;
 bool config_noFilterGroups;
 bool config_lightCallWindow;
 bool config_dontVibrateWhenCharging;
+uint8_t config_fontTimer;
+uint8_t config_fontName;
+uint8_t config_fontNumberType;
+uint8_t config_fontNumber;
 
 bool closingMode;
+
+
+static const char* fonts[] = {
+		FONT_KEY_GOTHIC_14,
+		FONT_KEY_GOTHIC_14_BOLD,
+		FONT_KEY_GOTHIC_18,
+		FONT_KEY_GOTHIC_18_BOLD,
+		FONT_KEY_GOTHIC_24,
+		FONT_KEY_GOTHIC_24_BOLD,
+		FONT_KEY_GOTHIC_28,
+		FONT_KEY_GOTHIC_28_BOLD,
+		FONT_KEY_BITHAM_30_BLACK,
+		FONT_KEY_BITHAM_42_BOLD,
+		FONT_KEY_BITHAM_42_LIGHT,
+		FONT_KEY_BITHAM_42_MEDIUM_NUMBERS,
+		FONT_KEY_BITHAM_34_MEDIUM_NUMBERS,
+		FONT_KEY_BITHAM_34_LIGHT_SUBSET,
+		FONT_KEY_BITHAM_18_LIGHT_SUBSET,
+		FONT_KEY_ROBOTO_CONDENSED_21,
+		FONT_KEY_ROBOTO_BOLD_SUBSET_49,
+		FONT_KEY_DROID_SERIF_28_BOLD
+};
+
+const char* config_getFontResource(int id)
+{
+	return fonts[id];
+}
 
 void setCurWindow(int window)
 {
@@ -84,7 +115,10 @@ static void received_config(DictionaryIterator *received)
 	config_dontVibrateWhenCharging = (data[2] & 0x10) != 0;
 
 	config_numOfGroups = data[3];
-
+	config_fontTimer = data[4];
+	config_fontName = data[5];
+	config_fontNumberType = data[6];
+	config_fontNumber = data[7];
 
 	gotConfig = true;
 

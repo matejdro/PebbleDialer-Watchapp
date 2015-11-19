@@ -12,6 +12,7 @@ static Window* window;
 static StrokedTextLayer* title;
 static char timerText[10];
 
+static GSize windowFrame;
 static StrokedTextLayer* callerName;
 static StrokedTextLayer* callerNumType;
 static StrokedTextLayer* callerNumber;
@@ -41,7 +42,6 @@ static ActionBarLayer* actionBar;
 
 static bool callEstablished;
 static uint16_t elapsedTime = 0;
-static bool nameExist;
 static bool vibrate;
 
 static bool vibratingNow = false;
@@ -81,6 +81,12 @@ static void convertTwoNumber(int number, char* string, int offset)
 
 static void updateTimer(void)
 {
+	if (!callEstablished)
+	{
+		stroked_text_layer_set_text(title, "Incoming Call");
+		return;
+	}
+
 	uint16_t minutes = elapsedTime / 60;
 	uint16_t seconds = elapsedTime % 60;
 
@@ -94,35 +100,44 @@ static void updateTimer(void)
 
 }
 
+static GRect moveAndCalculateTextSize(StrokedTextLayer* textLayer, int16_t yPosition, bool centerY, bool moveUp)
+{
+	stroked_text_layer_set_text_flow(textLayer, true);
+
+	layer_set_frame(stroked_text_layer_get_layer(textLayer), GRect(0, 0, windowFrame.w, 1000));
+	GSize size = stroked_text_layer_get_content_size(textLayer);
+	if (centerY)
+		yPosition -= size.h / 2;
+	if (moveUp)
+		yPosition -= size.h;
+
+	GRect frame = GRect(0, yPosition, windowFrame.w, size.h);
+	APP_LOG(0, "Test: %d %d %d %d", frame.origin.x, frame.origin.y, frame.size.w, frame.size.h);
+	layer_set_frame(stroked_text_layer_get_layer(textLayer), frame);
+	return frame;
+}
+
 static void updateTextFields(void)
 {
+	//Timer at the top
+	updateTimer();
+	int16_t timerY = STATUSBAR_Y_OFFSET;
+	moveAndCalculateTextSize(title, timerY, false, false);
+
+	//Caller name is at dead center of the screen
+	stroked_text_layer_set_text(callerName, callerNameText);
+	int16_t nameY = windowFrame.h / 2;
+	moveAndCalculateTextSize(callerName, nameY, true, false);
+
+	//Caller number is near the bottom
 	stroked_text_layer_set_text(callerNumber, callerNumberText);
+	int16_t callerNumberY = windowFrame.h;
+	GRect callerNumberFrame = moveAndCalculateTextSize(callerNumber, callerNumberY, false, true);
 
-	if (nameExist)
-	{
-		stroked_text_layer_set_text(callerName, callerNameText);
-		stroked_text_layer_set_text(callerNumType, callerNumTypeText);
-
-		layer_set_hidden(stroked_text_layer_get_layer(callerNumType), false);
-		layer_set_hidden(stroked_text_layer_get_layer(callerNumber), false);
-
-	}
-	else
-	{
-		stroked_text_layer_set_text(callerName, callerNumberText);
-
-		layer_set_hidden(stroked_text_layer_get_layer(callerNumType), true);
-		layer_set_hidden(stroked_text_layer_get_layer(callerNumber), true);
-	}
-
-	if (callEstablished)
-	{
-		updateTimer();
-	}
-	else
-	{
-		stroked_text_layer_set_text(title, "Incoming Call");
-	}
+	//Caller number type is above caller number
+	stroked_text_layer_set_text(callerNumType, callerNumTypeText);
+	int16_t callerNumberTypeY = callerNumberFrame.origin.y;
+	moveAndCalculateTextSize(callerNumType, callerNumberTypeY, false, true);
 }
 
 static void sendAction(int buttonId)
@@ -252,7 +267,7 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 		{
 			uint8_t* flags = dict_find(received, 4)->value->data;
 			callEstablished = flags[0] == 1;
-			nameExist = flags[1] == 1;
+			bool nameExist = flags[1] == 1;
 			vibrate = flags[5] == 1 && canVibrate();
 
 			uint8_t topIcon = flags[2];
@@ -263,10 +278,16 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, *indexedIcons[middleIcon]);
 			action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, *indexedIcons[bottomIcon]);
 
-			strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
 			if (nameExist)
 			{
+				strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
 				strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
+			}
+			else
+			{
+				strcpy(callerNameText, dict_find(received, 3)->value->cstring);
+				callerNumberText[0] = 0;
+				callerNumTypeText[0] = 0;
 			}
 
 			if (callEstablished)
@@ -289,11 +310,8 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 		}
 		else if (packet == 1)
 		{
-			if (!nameExist)
-				return;
-
 			strcpy(callerNameText, dict_find(received, 2)->value->cstring);
-			stroked_text_layer_set_text(callerName, callerNameText);
+			updateTextFields();
 		}
 #ifdef PBL_COLOR
 		else if (packet == 2)
@@ -356,9 +374,10 @@ static void window_show(Window* me)
 
 static void window_load(Window* me)
 {
-	#define LEFT_MARGIN (PBL_IF_RECT_ELSE(5, 25))
-
 	Layer* topLayer = window_get_root_layer(window);
+
+	windowFrame = layer_get_frame(topLayer).size;
+	windowFrame.w -= ACTION_BAR_WIDTH;
 
 	#ifdef  PBL_COLOR
 		callerBitmapLayer = bitmap_layer_create(GRect(PBL_IF_RECT_ELSE(0, 25),STATUSBAR_Y_OFFSET, SCREEN_WIDTH - ACTION_BAR_WIDTH - PBL_IF_RECT_ELSE(0, 25), HEIGHT_BELOW_STATUSBAR));
@@ -366,18 +385,21 @@ static void window_load(Window* me)
 		layer_add_child(topLayer, bitmap_layer_get_layer(callerBitmapLayer));
 	#endif
 
-	title = stroked_text_layer_create(GRect(LEFT_MARGIN, STATUSBAR_Y_OFFSET, SCREEN_WIDTH - ACTION_BAR_WIDTH - LEFT_MARGIN,30));
-	stroked_text_layer_set_font(title, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+
+	title = stroked_text_layer_create(GRectZero);
+	stroked_text_layer_set_font(title, fonts_get_system_font(config_getFontResource(config_fontTimer)));
 	layer_add_child(topLayer, stroked_text_layer_get_layer(title));
 
-	callerName = stroked_text_layer_create(GRect(LEFT_MARGIN, 30 + STATUSBAR_Y_OFFSET,  SCREEN_WIDTH - ACTION_BAR_WIDTH - LEFT_MARGIN, 90));
-	stroked_text_layer_set_font(callerName, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	callerName = stroked_text_layer_create(GRectZero);
+	stroked_text_layer_set_font(callerName, fonts_get_system_font(config_getFontResource(config_fontName)));
 	layer_add_child(topLayer, stroked_text_layer_get_layer(callerName));
 
-	callerNumType = stroked_text_layer_create(GRect(LEFT_MARGIN,100 + STATUSBAR_Y_OFFSET, SCREEN_WIDTH - ACTION_BAR_WIDTH - LEFT_MARGIN,20));
+	callerNumType = stroked_text_layer_create(GRectZero);
+	stroked_text_layer_set_font(callerNumType, fonts_get_system_font(config_getFontResource(config_fontNumberType)));
 	layer_add_child(topLayer, stroked_text_layer_get_layer(callerNumType));
 
-	callerNumber = stroked_text_layer_create(GRect(LEFT_MARGIN,122 + STATUSBAR_Y_OFFSET, SCREEN_WIDTH - ACTION_BAR_WIDTH - LEFT_MARGIN,30));
+	callerNumber = stroked_text_layer_create(GRectZero);
+	stroked_text_layer_set_font(callerNumber, fonts_get_system_font(config_getFontResource(config_fontNumber)));
 	layer_add_child(topLayer, stroked_text_layer_get_layer(callerNumber));
 
 	buttonAnswer = gbitmap_create_with_resource(RESOURCE_ID_ANSWER);
@@ -453,7 +475,6 @@ void call_window_init(void)
 {
 	elapsedTime = 0;
 	callEstablished = false;
-	nameExist = true;
 
 	window = window_create();
 

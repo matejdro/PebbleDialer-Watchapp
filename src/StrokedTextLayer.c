@@ -18,12 +18,20 @@ StrokedTextLayer* stroked_text_layer_create(GRect frame)
     strokedTextLayer->textAlignment = GTextAlignmentCenter;
     strokedTextLayer->textOverflowMode = GTextOverflowModeWordWrap;
 
+    #ifdef PBL_SDK_3
+        strokedTextLayer->textAttributes = graphics_text_attributes_create();
+    #endif
+
     return strokedTextLayer;
 }
 
 void stroked_text_layer_destroy(StrokedTextLayer* strokedTextLayer)
 {
     layer_destroy(strokedTextLayer->layer);
+    #ifdef PBL_SDK_3
+        graphics_text_attributes_destroy(strokedTextLayer->textAttributes);
+    #endif
+
     free(strokedTextLayer);
 }
 
@@ -74,7 +82,12 @@ Layer* stroked_text_layer_get_layer(StrokedTextLayer* strokedTextLayer)
 
 GSize stroked_text_layer_get_content_size(StrokedTextLayer* strokedTextLayer)
 {
-    GSize result = graphics_text_layout_get_content_size(strokedTextLayer->text, strokedTextLayer->textFont, layer_get_bounds(strokedTextLayer->layer), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment);
+    #ifdef PBL_SDK_3
+        GSize result = graphics_text_layout_get_content_size_with_attributes(strokedTextLayer->text, strokedTextLayer->textFont, layer_get_bounds(strokedTextLayer->layer), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, strokedTextLayer->textAttributes);
+    #else
+        GSize result = graphics_text_layout_get_content_size(strokedTextLayer->text, strokedTextLayer->textFont, layer_get_bounds(strokedTextLayer->layer), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment);
+    #endif
+
     result.h += 2;
     result.w += 2;
 
@@ -92,13 +105,32 @@ static void stroked_text_layer_paint(Layer* layer, GContext *ctx)
     size.w -= 2;
 
 
-    graphics_context_set_text_color(ctx, strokedTextLayer->strokeColor);
-    graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
-    graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
-    graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 2, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
-    graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y + 2, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
+    #ifdef PBL_SDK_3
+        graphics_context_set_text_color(ctx, strokedTextLayer->strokeColor);
+        graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, strokedTextLayer->textAttributes);
+        graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, strokedTextLayer->textAttributes);
+        graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 2, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, strokedTextLayer->textAttributes);
+        graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y + 2, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, strokedTextLayer->textAttributes);
 
-    graphics_context_set_text_color(ctx, strokedTextLayer->textColor);
-    graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
+        graphics_context_set_text_color(ctx, strokedTextLayer->textColor);
+        graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, strokedTextLayer->textAttributes);
+    #else
+        graphics_context_set_text_color(ctx, strokedTextLayer->textColor);
+        graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, NULL);
+    #endif
 }
 
+void stroked_text_layer_set_text_flow(StrokedTextLayer* layer, bool enable)
+{
+#ifdef PBL_SDK_3
+
+    if (enable)
+    {
+        graphics_text_attributes_enable_screen_text_flow(layer->textAttributes, 5);
+    }
+    else
+    {
+        graphics_text_attributes_restore_default_text_flow(layer->textAttributes);
+    }
+#endif
+}
