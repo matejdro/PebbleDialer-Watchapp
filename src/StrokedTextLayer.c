@@ -96,8 +96,6 @@ GSize stroked_text_layer_get_content_size(StrokedTextLayer* strokedTextLayer)
 
 static void stroked_text_layer_paint(Layer* layer, GContext *ctx)
 {
-    APP_LOG(0, "Draw %d", heap_bytes_free());
-
     StrokedTextLayer* strokedTextLayer = *((StrokedTextLayer**) layer_get_data(layer));
 
     GRect bounds = layer_get_bounds(layer);
