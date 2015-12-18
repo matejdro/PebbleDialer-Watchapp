@@ -18,7 +18,7 @@ StrokedTextLayer* stroked_text_layer_create(GRect frame)
     strokedTextLayer->textAlignment = GTextAlignmentCenter;
     strokedTextLayer->textOverflowMode = GTextOverflowModeWordWrap;
 
-    #ifdef PBL_SDK_3
+    #ifdef PBL_COLOR
         strokedTextLayer->textAttributes = graphics_text_attributes_create();
     #endif
 
@@ -28,7 +28,7 @@ StrokedTextLayer* stroked_text_layer_create(GRect frame)
 void stroked_text_layer_destroy(StrokedTextLayer* strokedTextLayer)
 {
     layer_destroy(strokedTextLayer->layer);
-    #ifdef PBL_SDK_3
+    #ifdef PBL_COLOR
         graphics_text_attributes_destroy(strokedTextLayer->textAttributes);
     #endif
 
@@ -82,7 +82,7 @@ Layer* stroked_text_layer_get_layer(StrokedTextLayer* strokedTextLayer)
 
 GSize stroked_text_layer_get_content_size(StrokedTextLayer* strokedTextLayer)
 {
-    #ifdef PBL_SDK_3
+    #ifdef PBL_COLOR
         GSize result = graphics_text_layout_get_content_size_with_attributes(strokedTextLayer->text, strokedTextLayer->textFont, layer_get_bounds(strokedTextLayer->layer), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, strokedTextLayer->textAttributes);
     #else
         GSize result = graphics_text_layout_get_content_size(strokedTextLayer->text, strokedTextLayer->textFont, layer_get_bounds(strokedTextLayer->layer), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment);
@@ -96,6 +96,8 @@ GSize stroked_text_layer_get_content_size(StrokedTextLayer* strokedTextLayer)
 
 static void stroked_text_layer_paint(Layer* layer, GContext *ctx)
 {
+    APP_LOG(0, "Draw %d", heap_bytes_free());
+
     StrokedTextLayer* strokedTextLayer = *((StrokedTextLayer**) layer_get_data(layer));
 
     GRect bounds = layer_get_bounds(layer);
@@ -105,7 +107,7 @@ static void stroked_text_layer_paint(Layer* layer, GContext *ctx)
     size.w -= 2;
 
 
-    #ifdef PBL_SDK_3
+    #ifdef PBL_COLOR
         graphics_context_set_text_color(ctx, strokedTextLayer->strokeColor);
         graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x, origin.y + 1, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, strokedTextLayer->textAttributes);
         graphics_draw_text(ctx, strokedTextLayer->text, strokedTextLayer->textFont, GRect(origin.x + 1, origin.y, size.w, size.h), strokedTextLayer->textOverflowMode, strokedTextLayer->textAlignment, strokedTextLayer->textAttributes);
@@ -122,7 +124,7 @@ static void stroked_text_layer_paint(Layer* layer, GContext *ctx)
 
 void stroked_text_layer_set_text_flow(StrokedTextLayer* layer, bool enable)
 {
-#ifdef PBL_SDK_3
+#ifdef PBL_COLOR
 
     if (enable)
     {

@@ -3,18 +3,16 @@
 
 #include "PebbleDialer.h"
 #include "util.h"
+#include "CircularBuffer.h"
 
 static Window* window;
 
 static uint16_t numMaxContacts = 7;
 
-static int8_t arrayCenterPos = 0;
-static int16_t centerIndex = 0;
-
 static int16_t pickedContact = -1;
 static int8_t pickedFilterButton = -1;
 
-static char contactNames[21][21] = {};
+static CircularBuffer* contacts;
 
 static MenuLayer* contactsMenuLayer;
 
@@ -26,110 +24,6 @@ static bool filterMode;
 static bool nothingFiltered;
 
 static void menu_config_provider(void* context);
-
-static int8_t convertToArrayPos(uint16_t index)
-{
-	int16_t indexDiff = index - centerIndex;
-	if (indexDiff > 10 || indexDiff < -10)
-		return -1;
-
-	int8_t arrayPos = arrayCenterPos + indexDiff;
-	if (arrayPos < 0)
-		arrayPos += 21;
-	if (arrayPos > 20)
-		arrayPos -= 21;
-
-	return arrayPos;
-}
-
-static char* getContactName(uint16_t index)
-{
-	int8_t arrayPos = convertToArrayPos(index);
-	if (arrayPos < 0)
-		return "";
-
-	return contactNames[arrayPos];
-}
-
-static void setContactName(uint16_t index, char *name)
-{
-	int8_t arrayPos = convertToArrayPos(index);
-	if (arrayPos < 0)
-		return;
-
-	strcpy(contactNames[arrayPos],name);
-}
-
-static void shiftContactArray(int newIndex)
-{
-	int8_t clearIndex;
-
-	int16_t diff = newIndex - centerIndex;
-	if (diff == 0)
-		return;
-
-	centerIndex+= diff;
-	arrayCenterPos+= diff;
-
-	if (diff > 0)
-	{
-		if (arrayCenterPos > 20)
-			arrayCenterPos -= 21;
-
-		clearIndex = arrayCenterPos - 10;
-		if (clearIndex < 0)
-			clearIndex += 21;
-	}
-	else
-	{
-		if (arrayCenterPos < 0)
-			arrayCenterPos += 21;
-
-		clearIndex = arrayCenterPos + 10;
-		if (clearIndex > 20)
-			clearIndex -= 21;
-	}
-
-	*contactNames[clearIndex] = 0;
-}
-
-static uint8_t getEmptySpacesDown(void)
-{
-	uint8_t spaces = 0;
-	for (int i = centerIndex; i <= centerIndex + 10; i++)
-	{
-		if (i >= numMaxContacts)
-			return 10;
-
-		if (*getContactName(i) == 0)
-		{
-			break;
-		}
-
-		spaces++;
-	}
-
-	return spaces;
-}
-
-static uint8_t getEmptySpacesUp(void)
-{
-	uint8_t spaces = 0;
-	for (int i = centerIndex; i >= centerIndex - 10; i--)
-	{
-		if (i < 0)
-			return 10;
-
-		if (*getContactName(i) == 0)
-		{
-			break;
-		}
-
-		spaces++;
-	}
-
-	return spaces;
-}
 
 static void requestContacts(uint16_t pos)
 {
@@ -164,17 +58,17 @@ static void sendPickedContact(int16_t pos)
 
 static void requestAdditionalContacts(void)
 {
-	int emptyDown = getEmptySpacesDown();
-	int emptyUp = getEmptySpacesUp();
+	uint16_t filledDown = cb_getNumOfLoadedSpacesDownFromCenter(contacts, numMaxContacts);
+	uint16_t filledUp = cb_getNumOfLoadedSpacesUpFromCenter(contacts);
 
-	if (emptyDown < 6 && emptyDown <= emptyUp)
+	if (filledDown < 6 && filledDown <= filledUp)
 	{
-		uint8_t startingIndex = centerIndex + emptyDown;
+		uint16_t startingIndex = contacts->centerIndex + filledDown;
 		requestContacts(startingIndex);
 	}
-	else if (emptyUp < 6)
+	else if (filledUp < 6)
 	{
-		uint8_t startingIndex = centerIndex - 2 - emptyUp;
+		uint16_t startingIndex = contacts->centerIndex - filledUp;
 		requestContacts(startingIndex);
 	}
 }
@@ -203,7 +97,7 @@ static int16_t menu_get_row_height_callback(MenuLayer *me,  MenuIndex *cell_inde
 
 static void menu_pos_changed(struct MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *callback_context)
 {
-	shiftContactArray(new_index.row);
+	cb_shift(contacts, new_index.row);
 	requestAdditionalContacts();
 }
 
@@ -212,8 +106,16 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 	if (cell_index->section != 0)
 			return;
 
-	graphics_context_set_text_color(ctx, GColorBlack);
-	graphics_draw_text(ctx, getContactName(cell_index->row), fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, SCREEN_WIDTH - 3, 23), GTextOverflowModeTrailingEllipsis, PBL_IF_RECT_ELSE(GTextAlignmentLeft, GTextAlignmentCenter), NULL);
+	char* contact = cb_getEntry(contacts, cell_index->row);
+	if (contact == NULL)
+		return;
+
+	if (menu_cell_layer_is_highlighted(cell_layer))
+		graphics_context_set_text_color(ctx, GColorWhite);
+	else
+		graphics_context_set_text_color(ctx, GColorBlack);
+
+	graphics_draw_text(ctx, contact, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, SCREEN_WIDTH - 3, 23), GTextOverflowModeTrailingEllipsis, PBL_IF_RECT_ELSE(GTextAlignmentLeft, GTextAlignmentCenter), NULL);
 }
 
 static void filter(int button)
@@ -232,7 +134,7 @@ static void filter(int button)
 	app_message_outbox_send();
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 
-	memset(contactNames, 0, 21 * 21);
+	cb_clear(contacts);
 	nothingFiltered = button == 3;
 	menu_layer_reload_data(contactsMenuLayer);
 	pickedFilterButton = -1;
@@ -322,13 +224,17 @@ static void receivedContactNames(DictionaryIterator* data)
 		if (groupPos >= numMaxContacts)
 			break;
 
-
-		setContactName(groupPos, dict_find(data, 4 + i)->value->cstring);
+		char* contact = cb_getEntryForFilling(contacts, groupPos);
+		if (contact != NULL)
+			strcpy(contact, dict_find(data, 4 + i)->value->cstring);
 	}
 
 	if (numMaxContacts == 0)
 	{
-		setContactName(0, "No contacts");
+		cb_clear(contacts);
+		char* contact = cb_getEntryForFilling(contacts, 0);
+		if (contact != NULL)
+			strcpy(contact, "No contacts");
 		numMaxContacts = 1;
 	}
 
@@ -356,6 +262,8 @@ void contacts_window_data_delivered(void)
 
 static void window_load(Window* me)
 {
+	contacts = cb_create(sizeof(char) * 21);
+
 	Layer* topLayer = window_get_root_layer(window);
 
 	contactsMenuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
@@ -381,10 +289,6 @@ static void window_load(Window* me)
 	nothingFiltered = true;
 	menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(0, 0), MenuRowAlignCenter, false);
 	menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(-1, -1), MenuRowAlignNone, false);
-	centerIndex = 0;
-	arrayCenterPos = 0;
-
-	memset(contactNames, 0, 21 * 21);
 
 	#ifdef PBL_COLOR
 		menu_layer_set_highlight_colors(contactsMenuLayer, GColorJaegerGreen, GColorBlack);
@@ -409,6 +313,7 @@ static void window_unload(Window* me)
 	#endif
 
 	window_destroy(me);
+	cb_destroy(contacts);
 }
 
 void contacts_window_init()

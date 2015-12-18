@@ -30,12 +30,6 @@
 #define HALF_ACTIONBAR_X_OFFSET ACTIONBAR_X_OFFSET / 2
 
 
-#ifdef PBL_COLOR
-	#define PNG_COMPOSITING_MODE GCompOpSet
-#else
-	#define PNG_COMPOSITING_MODE GCompOpAssign
-#endif
-
 extern bool config_dontClose;
 extern uint8_t config_numOfGroups;
 extern bool config_noMenu;

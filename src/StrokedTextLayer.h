@@ -16,7 +16,7 @@ typedef struct
     GTextOverflowMode textOverflowMode;
     GTextAlignment textAlignment;
     GFont textFont;
-#ifdef PBL_SDK_3
+#ifdef PBL_COLOR
     GTextAttributes* textAttributes;
 #endif
 } StrokedTextLayer;

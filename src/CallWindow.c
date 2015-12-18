@@ -114,6 +114,7 @@ static GRect moveAndCalculateTextSize(StrokedTextLayer* textLayer, int16_t yPosi
 	GRect frame = GRect(0, yPosition, windowFrame.w, size.h);
 	layer_set_frame(stroked_text_layer_get_layer(textLayer), frame);
 	return frame;
+	return GRect(0, 0, 0, 0);
 }
 
 static void updateTextFields(void)
@@ -260,6 +261,7 @@ static void config_provider_callscreen(void* context) {
 }
 
 void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterator *received) {
+
 	if (module == 1)
 	{
 		if (packet == 0)
@@ -273,7 +275,7 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			uint8_t middleIcon = flags[3];
 			uint8_t bottomIcon = flags[4];
 
-			action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, *indexedIcons[topIcon]);
+			 action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, *indexedIcons[topIcon]);
 			action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, *indexedIcons[middleIcon]);
 			action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, *indexedIcons[bottomIcon]);
 

@@ -5,22 +5,26 @@
 #include "PebbleDialer.h"
 #include "util.h"
 #include "ActionsMenu.h"
+#include "CircularBuffer.h"
 
 static Window* window;
 
 static uint16_t numMaxNumbers = 10;
-
-static int8_t arrayCenterPos = 0;
-static int16_t centerIndex = 0;
 
 static int16_t pickedNumber = -1;
 
 static GBitmap* callIcon;
 static GBitmap* messageIcon;
 
-uint8_t numberActions[20] = {};
-char numberTypes[21][21] = {};
-char numbers[21][21] = {};
+typedef struct
+{
+	uint8_t actionType;
+	char numberType[21];
+	char number[21];
+
+} ContactAction;
+
+static CircularBuffer* contactActions;
 
 MenuLayer* menuLayer;
 
@@ -30,147 +34,6 @@ MenuLayer* menuLayer;
 
 static void sendMenuPick(uint8_t buttonId);
 static void sendPickedNumber(int16_t pos);
-
-static int8_t convertToArrayPos(uint16_t index)
-{
-	int16_t indexDiff = index - centerIndex;
-	if (indexDiff > 10 || indexDiff < -10)
-		return -1;
-
-	int8_t arrayPos = arrayCenterPos + indexDiff;
-	if (arrayPos < 0)
-		arrayPos += 21;
-	if (arrayPos > 20)
-		arrayPos -= 21;
-
-	return arrayPos;
-}
-
-static char* getNumberType(uint16_t index)
-{
-	int8_t arrayPos = convertToArrayPos(index);
-	if (arrayPos < 0)
-		return "";
-
-	return numberTypes[arrayPos];
-}
-
-static void setNumberType(uint16_t index, char *name)
-{
-	int8_t arrayPos = convertToArrayPos(index);
-	if (arrayPos < 0)
-		return;
-
-	strcpy(numberTypes[arrayPos],name);
-}
-
-static char* getNumber(uint16_t index)
-{
-	int8_t arrayPos = convertToArrayPos(index);
-	if (arrayPos < 0)
-		return "";
-
-	return numbers[arrayPos];
-}
-
-static void setNumber(uint16_t index, char *name)
-{
-	int8_t arrayPos = convertToArrayPos(index);
-	if (arrayPos < 0)
-		return;
-
-	strcpy(numbers[arrayPos],name);
-}
-
-static uint8_t getNumberAction(uint16_t index)
-{
-	int8_t arrayPos = convertToArrayPos(index);
-	if (arrayPos < 0)
-		return 0;
-
-	return numberActions[arrayPos];
-}
-
-static void setNumberAction(uint16_t index, uint8_t action)
-{
-	int8_t arrayPos = convertToArrayPos(index);
-	if (arrayPos < 0)
-		return;
-
-	numberActions[arrayPos] = action;
-}
-
-static void shiftArray(int newIndex)
-{
-	int8_t clearIndex;
-
-	int16_t diff = newIndex - centerIndex;
-	if (diff == 0)
-		return;
-
-	centerIndex += diff;
-	arrayCenterPos += diff;
-
-	if (diff > 0)
-	{
-		if (arrayCenterPos > 20)
-			arrayCenterPos -= 21;
-
-		clearIndex = arrayCenterPos - 10;
-		if (clearIndex < 0)
-			clearIndex += 21;
-	}
-	else
-	{
-		if (arrayCenterPos < 0)
-			arrayCenterPos += 21;
-
-		clearIndex = arrayCenterPos + 10;
-		if (clearIndex > 20)
-			clearIndex -= 21;
-	}
-
-	*numberTypes[clearIndex] = 0;
-	*numbers[clearIndex] = 0;
-}
-
-static uint8_t getEmptySpacesDown(void)
-{
-	uint8_t spaces = 0;
-	for (int i = centerIndex; i <= centerIndex + 10; i++)
-	{
-		if (i >= numMaxNumbers)
-			return 10;
-
-		if (*getNumberType(i) == 0)
-		{
-			break;
-		}
-
-		spaces++;
-	}
-
-	return spaces;
-}
-
-static uint8_t getEmptySpacesUp(void)
-{
-	uint8_t spaces = 0;
-	for (int i = centerIndex; i >= centerIndex - 10; i--)
-	{
-		if (i < 0)
-			return 10;
-
-		if (*getNumberType(i) == 0)
-		{
-			break;
-		}
-
-		spaces++;
-	}
-
-	return spaces;
-}
 
 static void button_up_press(ClickRecognizerRef recognizer, Window *window)
 {
@@ -252,17 +115,17 @@ static void sendPickedNumber(int16_t pos)
 
 static void requestAdditionalNumbers(void)
 {
-	int emptyDown = getEmptySpacesDown();
-	int emptyUp = getEmptySpacesUp();
+	uint8_t filledDown = cb_getNumOfLoadedSpacesDownFromCenter(contactActions, numMaxNumbers);
+	uint8_t filledUp = cb_getNumOfLoadedSpacesUpFromCenter(contactActions);
 
-	if (emptyDown < 6 && emptyDown <= emptyUp)
+	if (filledDown < 6 && filledDown <= filledUp)
 	{
-		uint8_t startingIndex = centerIndex + emptyDown;
+		uint16_t startingIndex = contactActions->centerIndex + filledDown;
 		requestNumbers(startingIndex);
 	}
-	else if (emptyUp < 6)
+	else if (filledUp < 6)
 	{
-		uint8_t startingIndex = centerIndex - 1 - emptyUp;
+		uint16_t startingIndex = contactActions->centerIndex - 1 - filledUp;
 		requestNumbers(startingIndex);
 	}
 }
@@ -282,21 +145,25 @@ static int16_t menu_get_row_height_callback(MenuLayer *me,  MenuIndex *cell_inde
 
 static void menu_pos_changed(struct MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *callback_context)
 {
-	shiftArray(new_index.row);
+	cb_shift(contactActions, new_index.row);
 	requestAdditionalNumbers();
 }
 
 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
-	GBitmap* icon = getNumberAction(cell_index->row) == 0 ? callIcon : messageIcon;
+	ContactAction* action = cb_getEntry(contactActions, cell_index->row);
+	if (action == NULL)
+		return;
+
+	GBitmap* icon = action->actionType == 0 ? callIcon : messageIcon;
 
 #ifdef PBL_ROUND
 	char title[32];
 	strncpy(title, icon == callIcon ? "[Call] " : "[Msg] ", sizeof title - 1);
-	strncat(title, getNumberType(cell_index->row), sizeof title - 1 - strlen(title));
-	menu_cell_basic_draw(ctx, cell_layer, title, getNumber(cell_index->row), icon);
+	strncat(title, action->numberType, sizeof title - 1 - strlen(title));
+	menu_cell_basic_draw(ctx, cell_layer, title, action->number, icon);
 #else
-	menu_cell_basic_draw(ctx, cell_layer, getNumberType(cell_index->row), getNumber(cell_index->row), icon);
+	menu_cell_basic_draw(ctx, cell_layer, action->numberType, action->number, icon);
 #endif
 }
 
@@ -313,9 +180,13 @@ static void receivedNumbers(DictionaryIterator* data)
 		if (groupPos >= numMaxNumbers)
 			continue;
 
-		setNumberType(groupPos, dict_find(data, 4 + i)->value->cstring);
-		setNumber(groupPos, dict_find(data, 6 + i)->value->cstring);
-		setNumberAction(groupPos, actions[i]);
+		ContactAction* action = cb_getEntryForFilling(contactActions, groupPos);
+		if (action == NULL)
+			continue;
+
+		strcpy(action->numberType, dict_find(data, 4 + i)->value->cstring);
+		strcpy(action->number, dict_find(data, 6 + i)->value->cstring);
+		action->actionType = actions[i];
 	}
 
 	menu_layer_reload_data(menuLayer);
@@ -351,6 +222,8 @@ static void config_provider(void* context) {
 
 
 static void window_load(Window* me) {
+	contactActions = cb_create(sizeof(ContactAction));
+
 	Layer* topLayer = window_get_root_layer(window);
 
 	menuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
@@ -405,6 +278,7 @@ static void window_unload(Window* me)
 	actions_menu_deinit();
 
 	window_destroy(me);
+	cb_destroy(contactActions);
 }
 
 void number_picker_window_init(void)

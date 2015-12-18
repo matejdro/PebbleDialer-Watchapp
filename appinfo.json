@@ -13,72 +13,73 @@
     "media": [
       {
         "menuIcon": true,
-        "type": "png",
+        "type": "bitmap",
         "name": "ICON",
-        "file": "icon.png"
+        "file": "icon.png",
+        "memoryFormat": "1Bit"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "ANSWER",
         "file": "answer.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "ENDCALL",
         "file": "endcall.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "MIC_OFF",
         "file": "mic_off.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "MIC_ON",
         "file": "micon.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "SPEAKER_ON",
         "file": "speakeron.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "SPEAKER_OFF",
         "file": "speakeroff.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "CALL_HISTORY",
         "file": "callhistory.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "CONTACTS",
         "file": "contacts.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "CONTACT_GROUP",
         "file": "contactgroup.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "INCOMING_CALL",
         "file": "incomingcall.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "OUTGOING_CALL",
         "file": "outgoingcall.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "MISSED_CALL",
         "file": "missedcall.png"
       },
       {
-        "type": "png",
+        "type": "bitmap",
         "name": "MESSAGE",
         "file": "message.png"
       }

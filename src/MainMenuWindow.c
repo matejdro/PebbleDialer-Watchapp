@@ -99,7 +99,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 	}
 
 
-	graphics_context_set_compositing_mode(ctx, PNG_COMPOSITING_MODE);
+	graphics_context_set_compositing_mode(ctx, GCompOpSet);
 	menu_cell_basic_draw(ctx, cell_layer, text, NULL, icon);
 }
 
