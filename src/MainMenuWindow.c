@@ -205,7 +205,7 @@ static void window_load(Window *me) {
 
 	Layer* topLayer = window_get_root_layer(me);
 
-	loadingLayer = text_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 0));
+	loadingLayer = text_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
 	text_layer_set_text_alignment(loadingLayer, GTextAlignmentCenter);
 	text_layer_set_text(loadingLayer, "Loading...");
 	text_layer_set_font(loadingLayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
@@ -222,7 +222,7 @@ static void window_load(Window *me) {
 	text_layer_set_font(quitText, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(topLayer, (Layer*) quitText);
 
-	menuLayer = menu_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 0));
+	menuLayer = menu_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){

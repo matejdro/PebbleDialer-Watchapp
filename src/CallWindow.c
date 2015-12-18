@@ -379,7 +379,7 @@ static void window_load(Window* me)
 	windowFrame.w -= ACTION_BAR_WIDTH;
 
 	#ifdef  PBL_COLOR
-		callerBitmapLayer = bitmap_layer_create(GRect(PBL_IF_RECT_ELSE(0, 25),STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH - ACTION_BAR_WIDTH - PBL_IF_RECT_ELSE(0, 25), 0));
+		callerBitmapLayer = bitmap_layer_create(GRect(PBL_IF_RECT_ELSE(0, 25),STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH - ACTION_BAR_WIDTH - PBL_IF_RECT_ELSE(0, 25), HEIGHT_BELOW_STATUSBAR));
 		bitmap_layer_set_alignment(callerBitmapLayer, GAlignCenter);
 		layer_add_child(topLayer, bitmap_layer_get_layer(callerBitmapLayer));
 	#endif

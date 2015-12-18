@@ -205,7 +205,7 @@ static void window_load(Window *me) {
 
 	Layer* topLayer = window_get_root_layer(window);
 
-	menuLayer = menu_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 0));
+	menuLayer = menu_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){
