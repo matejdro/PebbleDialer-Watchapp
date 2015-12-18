@@ -36,9 +36,7 @@ static GBitmap** indexedIcons[6] = {&buttonAnswer, &buttonEndCall, &buttonMicOn,
 
 static ActionBarLayer* actionBar;
 
-#ifdef PBL_SDK_3
-	static StatusBarLayer* statusBar;
-#endif
+static StatusBarLayer* statusBar;
 
 static bool callEstablished;
 static uint16_t elapsedTime = 0;
@@ -121,7 +119,7 @@ static void updateTextFields(void)
 {
 	//Timer at the top
 	updateTimer();
-	int16_t timerY = STATUSBAR_Y_OFFSET;
+	int16_t timerY = STATUS_BAR_LAYER_HEIGHT;
 	GRect timerPosition = moveAndCalculateTextSize(title, timerY, false, false);
 
 	//Caller name is below timer
@@ -381,7 +379,7 @@ static void window_load(Window* me)
 	windowFrame.w -= ACTION_BAR_WIDTH;
 
 	#ifdef  PBL_COLOR
-		callerBitmapLayer = bitmap_layer_create(GRect(PBL_IF_RECT_ELSE(0, 25),STATUSBAR_Y_OFFSET, SCREEN_WIDTH - ACTION_BAR_WIDTH - PBL_IF_RECT_ELSE(0, 25), HEIGHT_BELOW_STATUSBAR));
+		callerBitmapLayer = bitmap_layer_create(GRect(PBL_IF_RECT_ELSE(0, 25),STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH - ACTION_BAR_WIDTH - PBL_IF_RECT_ELSE(0, 25), 0));
 		bitmap_layer_set_alignment(callerBitmapLayer, GAlignCenter);
 		layer_add_child(topLayer, bitmap_layer_get_layer(callerBitmapLayer));
 	#endif
@@ -419,10 +417,8 @@ static void window_load(Window* me)
 
 	layer_add_child(topLayer, action_bar_layer_get_layer(actionBar));
 
-	#ifdef PBL_SDK_3
-		statusBar = status_bar_layer_create();
-		layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
-	#endif
+	statusBar = status_bar_layer_create();
+	layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
 
 	actions_menu_init();
 	actions_menu_attach(topLayer);
@@ -446,9 +442,7 @@ static void window_unload(Window* me)
 	stroked_text_layer_destroy(callerNumber);
 	action_bar_layer_destroy(actionBar);
 
-	#ifdef PBL_SDK_3
-		status_bar_layer_destroy(statusBar);
-	#endif
+	status_bar_layer_destroy(statusBar);
 
 
 	#ifdef PBL_COLOR

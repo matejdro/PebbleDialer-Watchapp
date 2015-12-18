@@ -28,9 +28,7 @@ static CircularBuffer* contactActions;
 
 MenuLayer* menuLayer;
 
-#ifdef PBL_SDK_3
-	StatusBarLayer* statusBar;
-#endif
+StatusBarLayer* statusBar;
 
 static void sendMenuPick(uint8_t buttonId);
 static void sendPickedNumber(int16_t pos);
@@ -226,7 +224,7 @@ static void window_load(Window* me) {
 
 	Layer* topLayer = window_get_root_layer(window);
 
-	menuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
+	menuLayer = menu_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 0));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){
@@ -246,11 +244,8 @@ static void window_load(Window* me) {
 		menu_layer_set_highlight_colors(menuLayer, GColorJaegerGreen, GColorBlack);
 	#endif
 
-
-	#ifdef PBL_SDK_3
-		statusBar = status_bar_layer_create();
-		layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
-	#endif
+	statusBar = status_bar_layer_create();
+	layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
 
 	callIcon = gbitmap_create_with_resource(RESOURCE_ID_ICON);
 	messageIcon = gbitmap_create_with_resource(RESOURCE_ID_MESSAGE);
@@ -267,10 +262,7 @@ static void window_appear(Window* me)
 static void window_unload(Window* me)
 {
 	menu_layer_destroy(menuLayer);
-
-	#ifdef PBL_SDK_3
-		status_bar_layer_destroy(statusBar);
-	#endif
+	status_bar_layer_destroy(statusBar);
 
 	gbitmap_destroy(callIcon);
 	gbitmap_destroy(messageIcon);

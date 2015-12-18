@@ -19,9 +19,7 @@ static TextLayer* quitText;
 
 static MenuLayer* menuLayer;
 
-#ifdef PBL_SDK_3
-	static StatusBarLayer* statusBar;
-#endif
+static StatusBarLayer* statusBar;
 
 static bool menuLoaded = false;
 
@@ -207,24 +205,24 @@ static void window_load(Window *me) {
 
 	Layer* topLayer = window_get_root_layer(me);
 
-	loadingLayer = text_layer_create(GRect(0, STATUSBAR_Y_OFFSET, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
+	loadingLayer = text_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 0));
 	text_layer_set_text_alignment(loadingLayer, GTextAlignmentCenter);
 	text_layer_set_text(loadingLayer, "Loading...");
 	text_layer_set_font(loadingLayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(topLayer, (Layer*) loadingLayer);
 
-	quitTitle = text_layer_create(GRect(0, 70 + STATUSBAR_Y_OFFSET, SCREEN_WIDTH, 50));
+	quitTitle = text_layer_create(GRect(0, 70 + STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 50));
 	text_layer_set_text_alignment(quitTitle, GTextAlignmentCenter);
 	text_layer_set_text(quitTitle, "Press back again if app does not close in several seconds");
 	layer_add_child(topLayer, (Layer*) quitTitle);
 
-	quitText = text_layer_create(GRect(0, 10 + STATUSBAR_Y_OFFSET, SCREEN_WIDTH, 50));
+	quitText = text_layer_create(GRect(0, 10 + STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 50));
 	text_layer_set_text_alignment(quitText, GTextAlignmentCenter);
 	text_layer_set_text(quitText, "Quitting...\n Please wait");
 	text_layer_set_font(quitText, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(topLayer, (Layer*) quitText);
 
-	menuLayer = menu_layer_create(GRect(0, STATUSBAR_Y_OFFSET, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
+	menuLayer = menu_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 0));
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){
@@ -241,10 +239,8 @@ static void window_load(Window *me) {
 	menu_layer_set_click_config_onto_window(menuLayer, window);
 	layer_add_child(topLayer, (Layer*) menuLayer);
 
-#ifdef PBL_SDK_3
-		statusBar = status_bar_layer_create();
-		layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
-	#endif
+	statusBar = status_bar_layer_create();
+	layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
 }
 
 static void window_unload(Window* me)
@@ -258,10 +254,7 @@ static void window_unload(Window* me)
 	text_layer_destroy(quitText);
 
 	menu_layer_destroy(menuLayer);
-
-	#ifdef PBL_SDK_3
-		status_bar_layer_destroy(statusBar);
-	#endif
+	status_bar_layer_destroy(statusBar);
 
 	window_destroy(me);
 }
