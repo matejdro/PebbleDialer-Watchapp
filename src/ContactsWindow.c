@@ -20,6 +20,8 @@ static StatusBarLayer* statusBar;
 
 static bool filterMode;
 static bool nothingFiltered;
+static bool firstAppear;
+static uint16_t scrollPosition;
 
 static void menu_config_provider(void* context);
 
@@ -260,6 +262,17 @@ void contacts_window_data_delivered(void)
 
 static void window_load(Window* me)
 {
+	filterMode = true;
+	nothingFiltered = true;
+	firstAppear = true;
+}
+
+static void window_unload(Window* me)
+{
+	window_destroy(me);
+}
+
+static void window_appear(Window *me) {
 	contacts = cb_create(sizeof(char) * 21, 13);
 
 	Layer* topLayer = window_get_root_layer(window);
@@ -268,23 +281,28 @@ static void window_load(Window* me)
 
 	// Set all the callbacks for the menu layer
 	menu_layer_set_callbacks(contactsMenuLayer, NULL, (MenuLayerCallbacks){
-		.get_num_sections = menu_get_num_sections_callback,
-		.get_num_rows = menu_get_num_rows_callback,
-		.get_cell_height = menu_get_row_height_callback,
-		.draw_row = menu_draw_row_callback,
-		.selection_changed = menu_pos_changed
+			.get_num_sections = menu_get_num_sections_callback,
+			.get_num_rows = menu_get_num_rows_callback,
+			.get_cell_height = menu_get_row_height_callback,
+			.draw_row = menu_draw_row_callback,
+			.selection_changed = menu_pos_changed
 	});
 
 	menu_layer_set_center_focused(contactsMenuLayer, false);
 
 	layer_add_child(topLayer, (Layer*) contactsMenuLayer);
 
-	window_set_click_config_provider(window, filter_config_provider);
+	if (filterMode)
+	{
+		window_set_click_config_provider(window, filter_config_provider);
 
-	filterMode = true;
-	nothingFiltered = true;
-	menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(0, 0), MenuRowAlignCenter, false);
-	menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(-1, -1), MenuRowAlignNone, false);
+		menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(0, 0), MenuRowAlignCenter, false);
+		menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(-1, -1), MenuRowAlignNone, false);
+	}
+	else
+	{
+		contacts_window_stop_filtering();
+	}
 
 	#ifdef PBL_COLOR
 		menu_layer_set_highlight_colors(contactsMenuLayer, GColorJaegerGreen, GColorBlack);
@@ -292,21 +310,28 @@ static void window_load(Window* me)
 
 	statusBar = status_bar_layer_create();
 	layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
-}
 
-static void window_appear(Window *me) {
 	setCurWindow(3);
+
+	if (firstAppear)
+		firstAppear = false;
+	else
+	{
+		menu_layer_set_selected_index(contactsMenuLayer, MenuIndex(0, scrollPosition), MenuRowAlignCenter, false);
+		requestContacts(scrollPosition);
+	}
 }
 
-static void window_unload(Window* me)
+static void window_disappear(Window* me)
 {
+	scrollPosition = menu_layer_get_selected_index(contactsMenuLayer).row;
 	menu_layer_destroy(contactsMenuLayer);
 
 	status_bar_layer_destroy(statusBar);
 
-	window_destroy(me);
 	cb_destroy(contacts);
 }
+
 
 void contacts_window_init()
 {
@@ -315,7 +340,8 @@ void contacts_window_init()
 	window_set_window_handlers(window, (WindowHandlers){
 		.load = window_load,
 		.unload = window_unload,
-		.appear = window_appear
+		.appear = window_appear,
+		.disappear = window_disappear
 	});
 
 	window_stack_push(window, true /* Animated */);
