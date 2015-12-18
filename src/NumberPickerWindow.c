@@ -116,12 +116,12 @@ static void requestAdditionalNumbers(void)
 	uint8_t filledDown = cb_getNumOfLoadedSpacesDownFromCenter(contactActions, numMaxNumbers);
 	uint8_t filledUp = cb_getNumOfLoadedSpacesUpFromCenter(contactActions);
 
-	if (filledDown < 6 && filledDown <= filledUp)
+	if (filledDown < 4 && filledDown <= filledUp)
 	{
 		uint16_t startingIndex = contactActions->centerIndex + filledDown;
 		requestNumbers(startingIndex);
 	}
-	else if (filledUp < 6)
+	else if (filledUp < 4)
 	{
 		uint16_t startingIndex = contactActions->centerIndex - 1 - filledUp;
 		requestNumbers(startingIndex);
