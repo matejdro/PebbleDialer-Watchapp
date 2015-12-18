@@ -7,19 +7,19 @@
 
 #include <pebble.h>
 
-#define CIRCULAR_BUFFER_SIZE 13 //To keep it simple, have all buffers be same size
-
 typedef struct
 {
-    bool loaded[CIRCULAR_BUFFER_SIZE];
+    bool* loaded;
     char* data;
     int8_t bufferCenterPos;
     uint16_t centerIndex;
+
+    uint8_t bufferSize;
     size_t singleEntrySize;
 
 } CircularBuffer;
 
-CircularBuffer* cb_create(size_t singleEntrySize);
+CircularBuffer* cb_create(size_t singleEntrySize,  uint8_t bufferSize);
 void* cb_getEntry(CircularBuffer* buffer, uint16_t index);
 void* cb_getEntryForFilling(CircularBuffer* buffer, uint16_t index);
 bool cb_isLoaded(CircularBuffer* buffer, uint16_t index);

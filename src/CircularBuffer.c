@@ -6,15 +6,17 @@
 
 void cb_clear(CircularBuffer* buffer)
 {
-    for (int i = 0; i < CIRCULAR_BUFFER_SIZE; i++)
+    for (int i = 0; i < buffer->bufferSize; i++)
         buffer->loaded[i] = false;
 }
 
-CircularBuffer* cb_create(size_t singleEntrySize)
+CircularBuffer* cb_create(size_t singleEntrySize, uint8_t bufferSize)
 {
     CircularBuffer* circularBuffer = (CircularBuffer*) malloc(sizeof(CircularBuffer));
-    circularBuffer->data = malloc(singleEntrySize * CIRCULAR_BUFFER_SIZE);
+    circularBuffer->data = malloc(singleEntrySize * bufferSize);
+    circularBuffer->loaded = malloc(sizeof(bool) * bufferSize);
     circularBuffer->singleEntrySize = singleEntrySize;
+    circularBuffer->bufferSize = bufferSize;
     circularBuffer->bufferCenterPos = 0;
     circularBuffer->centerIndex = 0;
 
@@ -25,6 +27,7 @@ CircularBuffer* cb_create(size_t singleEntrySize)
 
 void cb_destroy(CircularBuffer* buffer)
 {
+    free(buffer->loaded);
     free(buffer->data);
     free(buffer);
 }
@@ -43,21 +46,21 @@ void cb_shift(CircularBuffer* circularBuffer, uint16_t newIndex)
 
     if (diff > 0)
     {
-        if (circularBuffer->bufferCenterPos >= CIRCULAR_BUFFER_SIZE)
-            circularBuffer->bufferCenterPos -= CIRCULAR_BUFFER_SIZE;
+        if (circularBuffer->bufferCenterPos >= circularBuffer->bufferSize)
+            circularBuffer->bufferCenterPos -= circularBuffer->bufferSize;
 
-        clearIndex = (int8_t) (circularBuffer->bufferCenterPos - CIRCULAR_BUFFER_SIZE / 2);
+        clearIndex = (int8_t) (circularBuffer->bufferCenterPos - circularBuffer->bufferSize / 2);
         if (clearIndex < 0)
-            clearIndex += CIRCULAR_BUFFER_SIZE;
+            clearIndex += circularBuffer->bufferSize;
     }
     else
     {
         if (circularBuffer->bufferCenterPos < 0)
-            circularBuffer->bufferCenterPos += CIRCULAR_BUFFER_SIZE;
+            circularBuffer->bufferCenterPos += circularBuffer->bufferSize;
 
-        clearIndex = (int8_t) (circularBuffer->bufferCenterPos + CIRCULAR_BUFFER_SIZE / 2);
-        if (clearIndex >= CIRCULAR_BUFFER_SIZE)
-            clearIndex -= CIRCULAR_BUFFER_SIZE;
+        clearIndex = (int8_t) (circularBuffer->bufferCenterPos + circularBuffer->bufferSize / 2);
+        if (clearIndex >= circularBuffer->bufferSize)
+            clearIndex -= circularBuffer->bufferSize;
     }
 
     circularBuffer->loaded[clearIndex] = false;
@@ -67,14 +70,14 @@ void cb_shift(CircularBuffer* circularBuffer, uint16_t newIndex)
 static int8_t convertToArrayPos(CircularBuffer* buffer, uint16_t index)
 {
     int16_t indexDiff = index - buffer->centerIndex;
-    if (indexDiff >= CIRCULAR_BUFFER_SIZE / 2 || indexDiff <= -CIRCULAR_BUFFER_SIZE / 2)
+    if (indexDiff >= buffer->bufferSize / 2 || indexDiff <= -buffer->bufferSize / 2)
         return -1;
 
     int8_t arrayPos = (int8_t) (buffer->bufferCenterPos + indexDiff);
     if (arrayPos < 0)
-        arrayPos += CIRCULAR_BUFFER_SIZE;
-    if (arrayPos >= CIRCULAR_BUFFER_SIZE)
-        arrayPos -= CIRCULAR_BUFFER_SIZE;
+        arrayPos += buffer->bufferSize;
+    if (arrayPos >= buffer->bufferSize)
+        arrayPos -= buffer->bufferSize;
 
     return arrayPos;
 }
@@ -115,10 +118,10 @@ void* cb_getEntryForFilling(CircularBuffer* buffer, uint16_t index)
 uint8_t cb_getNumOfLoadedSpacesDownFromCenter(CircularBuffer* buffer, uint16_t limit)
 {
     uint8_t spaces = 0;
-    for (int16_t i = buffer->centerIndex; i < buffer->centerIndex + CIRCULAR_BUFFER_SIZE / 2; i++)
+    for (int16_t i = buffer->centerIndex; i < buffer->centerIndex + buffer->bufferSize / 2; i++)
     {
         if (i >= limit)
-            return CIRCULAR_BUFFER_SIZE / 2; //Everything up to limit is loaded. Lets pretend everything beyond is already loaded.
+            return buffer->bufferSize / 2; //Everything up to limit is loaded. Lets pretend everything beyond is already loaded.
 
         if (!cb_isLoaded(buffer, (uint8_t) i))
         {
@@ -134,10 +137,10 @@ uint8_t cb_getNumOfLoadedSpacesDownFromCenter(CircularBuffer* buffer, uint16_t l
 uint8_t cb_getNumOfLoadedSpacesUpFromCenter(CircularBuffer* buffer)
 {
     uint8_t spaces = 0;
-    for (int16_t i = buffer->centerIndex; i > buffer->centerIndex - CIRCULAR_BUFFER_SIZE / 2; i--)
+    for (int16_t i = buffer->centerIndex; i > buffer->centerIndex - buffer->bufferSize / 2; i--)
     {
         if (i < 0)
-            return CIRCULAR_BUFFER_SIZE / 2; //Everything up to first entry is loaded. Lets pretend everything beyond is already loaded.
+            return buffer->bufferSize / 2; //Everything up to first entry is loaded. Lets pretend everything beyond is already loaded.
 
         if (!cb_isLoaded(buffer, (uint8_t) i))
         {

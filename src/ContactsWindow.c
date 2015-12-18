@@ -260,7 +260,7 @@ void contacts_window_data_delivered(void)
 
 static void window_load(Window* me)
 {
-	contacts = cb_create(sizeof(char) * 21);
+	contacts = cb_create(sizeof(char) * 21, 13);
 
 	Layer* topLayer = window_get_root_layer(window);
 
