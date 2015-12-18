@@ -324,6 +324,8 @@ static void window_appear(Window *me) {
 
 static void window_disappear(Window* me)
 {
+	layer_remove_child_layers(window_get_root_layer(me));
+
 	scrollPosition = menu_layer_get_selected_index(contactsMenuLayer).row;
 	menu_layer_destroy(contactsMenuLayer);
 
