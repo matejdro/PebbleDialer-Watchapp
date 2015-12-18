@@ -197,7 +197,7 @@ void call_log_window_data_sent(void)
 }
 
 static void window_appear(Window *me) {
-	callLogData = cb_create(sizeof(CallLogEntry), 5);
+	callLogData = cb_create(sizeof(CallLogEntry), 8);
 
 	Layer* topLayer = window_get_root_layer(window);
 

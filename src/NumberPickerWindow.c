@@ -220,7 +220,7 @@ static void config_provider(void* context) {
 
 
 static void window_load(Window* me) {
-	contactActions = cb_create(sizeof(ContactAction), 6);
+	contactActions = cb_create(sizeof(ContactAction), 8);
 
 	Layer* topLayer = window_get_root_layer(window);
 
