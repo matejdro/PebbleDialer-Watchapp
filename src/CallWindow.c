@@ -471,8 +471,6 @@ static void window_unload(Window* me)
 
 void call_window_init(void)
 {
-	APP_LOG(0, "New CallWindow %d", heap_bytes_free());
-
 	elapsedTime = 0;
 	callEstablished = false;
 

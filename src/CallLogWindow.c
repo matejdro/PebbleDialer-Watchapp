@@ -5,8 +5,6 @@
 #include "util.h"
 #include "CircularBuffer.h"
 
-#define ENTRIES_SIZE 10
-
 static Window* window;
 
 static uint16_t numEntries = 10;
@@ -71,12 +69,12 @@ static void requestAdditionalEntries(void)
 	uint16_t filledUp = cb_getNumOfLoadedSpacesUpFromCenter(callLogData);
 
 
-	if (filledDown < ENTRIES_SIZE / 4 && filledDown <= filledUp)
+	if (filledDown < 4 && filledDown <= filledUp)
 	{
 		uint16_t startingIndex = callLogData->centerIndex + filledDown;
 		requestNumbers(startingIndex);
 	}
-	else if (filledUp < ENTRIES_SIZE / 4)
+	else if (filledUp < 4)
 	{
 		uint16_t startingIndex = callLogData->centerIndex - filledUp;
 		requestNumbers(startingIndex);
@@ -201,7 +199,7 @@ static void window_appear(Window *me) {
 }
 
 static void window_load(Window *me) {
-	callLogData = cb_create(sizeof(CallLogEntry), 8);
+	callLogData = cb_create(sizeof(CallLogEntry), 5);
 
 	Layer* topLayer = window_get_root_layer(window);
 
