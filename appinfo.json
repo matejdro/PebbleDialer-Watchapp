@@ -4,7 +4,7 @@
   "longName": "Dialer for Pebble",
   "companyName": "matejdro",
   "versionCode": 2,
-  "versionLabel": "2.54",
+  "versionLabel": "2.55",
   "watchapp": {
     "watchface": false
   },
