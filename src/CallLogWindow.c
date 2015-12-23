@@ -115,10 +115,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
 	bool hasNumberType = callLogEntry->number[0] != 0;
 
-	if (menu_cell_layer_is_highlighted(cell_layer))
-		graphics_context_set_text_color(ctx, GColorWhite);
-	else
-		graphics_context_set_text_color(ctx, GColorBlack);
+	graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorBlack, menu_cell_layer_is_highlighted(cell_layer) ? GColorWhite : GColorBlack));
 
 	graphics_draw_text(ctx, callLogEntry->name, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(35, 0, SCREEN_WIDTH - 30, 20), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 	graphics_draw_text(ctx, callLogEntry->date, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(35, 20, SCREEN_WIDTH - 30, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);

@@ -110,10 +110,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 	if (contact == NULL)
 		return;
 
-	if (menu_cell_layer_is_highlighted(cell_layer))
-		graphics_context_set_text_color(ctx, GColorWhite);
-	else
-		graphics_context_set_text_color(ctx, GColorBlack);
+	graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorBlack, menu_cell_layer_is_highlighted(cell_layer) ? GColorWhite : GColorBlack));
 
 	graphics_draw_text(ctx, contact, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(3, 3, SCREEN_WIDTH - 3, 23), GTextOverflowModeTrailingEllipsis, PBL_IF_RECT_ELSE(GTextAlignmentLeft, GTextAlignmentCenter), NULL);
 }
