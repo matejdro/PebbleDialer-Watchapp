@@ -241,7 +241,7 @@ int main() {
 	app_message_register_outbox_sent(data_delivered);
 	app_message_register_inbox_received(received_data);
 
-	app_message_open(124, 50);
+	app_message_open(124, 124);
 
 	DictionaryIterator *iterator;
 	app_message_outbox_begin(&iterator);
