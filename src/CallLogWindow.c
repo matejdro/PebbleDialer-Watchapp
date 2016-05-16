@@ -104,6 +104,8 @@ static void menu_pos_changed(struct MenuLayer *menu_layer, MenuIndex new_index, 
 {
 	cb_shift(callLogData, new_index.row);
 	requestAdditionalEntries();
+
+	menu_layer_set_selected_index(menuLayer, new_index, MenuRowAlignCenter, false);
 }
 
 
