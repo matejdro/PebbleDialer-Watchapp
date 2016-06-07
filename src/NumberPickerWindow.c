@@ -247,7 +247,7 @@ static void window_load(Window* me) {
 	statusBar = status_bar_layer_create();
 	layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
 
-	callIcon = gbitmap_create_with_resource(RESOURCE_ID_ICON);
+	callIcon = gbitmap_create_with_resource(RESOURCE_ID_CALL);
 	messageIcon = gbitmap_create_with_resource(RESOURCE_ID_MESSAGE);
 
 	actions_menu_init();
