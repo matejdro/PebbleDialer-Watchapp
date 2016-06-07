@@ -483,14 +483,10 @@ void call_window_init(void)
 
 	});
 
-	window_stack_push(window, false);
-	setCurWindow(1);
+	window_stack_pop_all(false);
+	if (!config_noMenu)
+		main_menu_show_closing();
 
-	if (config_noMenu)
-	{
-		if (!config_dontClose)
-			main_menu_close();
-		else
-			main_menu_show_closing();
-	}
+	window_stack_push(window, true);
+	setCurWindow(1);
 }

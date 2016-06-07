@@ -35,6 +35,8 @@ static void show_loading(void)
 
 void main_menu_show_closing(void)
 {
+	if (!window_stack_contains_window(window))
+		window_stack_push(window, false);
 	layer_set_hidden((Layer *) loadingLayer, true);
 	layer_set_hidden((Layer *) menuLayer, true);
 	layer_set_hidden((Layer *) quitTitle, false);
@@ -183,6 +185,7 @@ static void window_appears(Window *me)
 {
 	if (closingMode)
 	{
+		main_menu_show_closing();
 		closeApp();
 		app_timer_register(3000, closing_timer, NULL);
 	}
