@@ -3,6 +3,7 @@
 
 #include "PebbleDialer.h"
 #include "ContactsWindow.h"
+#include "MainMenuWindow.h"
 
 static Window* window;
 
@@ -36,7 +37,7 @@ static void show_loading(void)
 void main_menu_show_closing(void)
 {
 	if (!window_stack_contains_window(window))
-		window_stack_push(window, false);
+		main_menu_init();
 	layer_set_hidden((Layer *) loadingLayer, true);
 	layer_set_hidden((Layer *) menuLayer, true);
 	layer_set_hidden((Layer *) quitTitle, false);

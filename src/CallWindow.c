@@ -336,7 +336,6 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 
 			if (finished)
 			{
-				APP_LOG(0, "FINISHED");
 				callerBitmap = gbitmap_create_from_png_data(bitmapReceivingBuffer, callerImageSize);
 				bitmap_layer_set_bitmap(callerBitmapLayer, callerBitmap);
 			}
