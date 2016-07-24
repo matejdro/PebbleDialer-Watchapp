@@ -318,18 +318,12 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			if (bitmapReceivingBuffer == NULL)
 				return;
 
-			uint8_t* buffer = dict_find(received, 2)->value->data;
-			uint16_t bufferSize = callerImageSize - bitmapReceivingBufferHead;
-			bool finished = true;
-			if (bufferSize > 116)
-			{
-				finished = false;
-				bufferSize = 116;
-			}
+			uint16_t bufferSize = dict_find(received, 2)->value->uint16;
+			uint8_t* buffer = dict_find(received, 3)->value->data;
 
 			memcpy(&bitmapReceivingBuffer[bitmapReceivingBufferHead], buffer, bufferSize);
 			bitmapReceivingBufferHead += bufferSize;
-
+			bool finished = bitmapReceivingBufferHead == callerImageSize;
 
 			if (finished)
 			{

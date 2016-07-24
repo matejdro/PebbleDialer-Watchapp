@@ -255,14 +255,23 @@ int main() {
 	app_message_register_outbox_sent(data_delivered);
 	app_message_register_inbox_received(received_data);
 
-	app_message_open(124, 124);
+	uint16_t appmessage_max_size = app_message_inbox_size_maximum();
+	if (appmessage_max_size > 4096)
+		appmessage_max_size = 4096; //Limit inbox size to conserve RAM.
+
+	#ifdef PBL_PLATFORM_APLITE
+		//Aplite has so little memory, we can't squeeze much more than that out of appmessage buffer.
+		appmessage_max_size = 124;
+	#endif
+
+	app_message_open(appmessage_max_size, 124);
 
 	DictionaryIterator *iterator;
 	app_message_outbox_begin(&iterator);
 	dict_write_uint8(iterator, 0, 0);
 	dict_write_uint8(iterator, 1, 0);
 	dict_write_uint16(iterator, 2, PROTOCOL_VERSION);
-	dict_write_uint32(iterator, 3, getCapabilities(124));
+	dict_write_uint32(iterator, 3, getCapabilities(appmessage_max_size));
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_message_outbox_send();
