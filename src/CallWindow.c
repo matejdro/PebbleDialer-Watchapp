@@ -47,6 +47,7 @@ static bool vibratingNow = false;
 static char callerNameText[101];
 static char callerNumTypeText[31];
 static char callerNumberText[31];
+static bool nameAtBottom;
 
 static void convertTwoNumber(int number, char* string, int offset)
 {
@@ -123,12 +124,12 @@ static void updateTextFields(void)
 	GRect timerPosition = moveAndCalculateTextSize(title, timerY, false, false);
 
 	//Caller name is below timer
-	stroked_text_layer_set_text(callerName, callerNameText);
+	stroked_text_layer_set_text(callerName, nameAtBottom ? "" : callerNameText);
 	int16_t nameY = timerPosition.origin.y + timerPosition.size.h;
 	moveAndCalculateTextSize(callerName, nameY, false, false);
 
 	//Caller number is near the bottom
-	stroked_text_layer_set_text(callerNumber, callerNumberText);
+	stroked_text_layer_set_text(callerNumber, nameAtBottom ? callerNameText : callerNumberText);
 	int16_t callerNumberY = windowFrame.h - 10;
 	GRect callerNumberFrame = moveAndCalculateTextSize(callerNumber, callerNumberY, false, true);
 
@@ -266,28 +267,19 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 		{
 			uint8_t* flags = dict_find(received, 4)->value->data;
 			callEstablished = flags[0] == 1;
-			bool nameExist = flags[1] == 1;
+			nameAtBottom = flags[1] == 1;
 			vibrate = flags[5] == 1 && canVibrate();
 
 			uint8_t topIcon = flags[2];
 			uint8_t middleIcon = flags[3];
 			uint8_t bottomIcon = flags[4];
 
-			 action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, *indexedIcons[topIcon]);
+			action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, *indexedIcons[topIcon]);
 			action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, *indexedIcons[middleIcon]);
 			action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, *indexedIcons[bottomIcon]);
 
-			if (nameExist)
-			{
-				strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
-				strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
-			}
-			else
-			{
-				strcpy(callerNameText, dict_find(received, 3)->value->cstring);
-				callerNumberText[0] = 0;
-				callerNumTypeText[0] = 0;
-			}
+			strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
+			strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
 
 			if (callEstablished)
 				elapsedTime = dict_find(received, 5)->value->uint16;
@@ -425,6 +417,10 @@ static void window_load(Window* me)
 
 	tick_timer_service_subscribe(SECOND_UNIT, (TickHandler) second_tick);
 	accel_tap_service_subscribe(shake);
+
+	callerNameText[0] = 0;
+	callerNumberText[0] = 0;
+	callerNumTypeText[0] = 0;
 }
 
 static void window_unload(Window* me)
