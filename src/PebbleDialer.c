@@ -19,6 +19,7 @@ uint8_t config_numOfGroups;
 bool config_noFilterGroups;
 bool config_lightCallWindow;
 bool config_dontVibrateWhenCharging;
+bool config_enableCallTimer;
 uint8_t config_fontTimer;
 uint8_t config_fontName;
 uint8_t config_fontNumberType;
@@ -113,6 +114,7 @@ static void received_config(DictionaryIterator *received)
 	config_noFilterGroups = (data[2] & 0x04) != 0;
 	config_lightCallWindow = (data[2] & 0x08) != 0;
 	config_dontVibrateWhenCharging = (data[2] & 0x10) != 0;
+	config_enableCallTimer = (data[2] & 0x20) != 0;
 
 	config_numOfGroups = data[3];
 	config_fontTimer = data[4];

@@ -49,6 +49,8 @@ static char callerNumTypeText[31];
 static char callerNumberText[31];
 static bool nameAtBottom;
 
+static void vibration_cycle_finished(void *data);
+
 static void convertTwoNumber(int number, char* string, int offset)
 {
 	if (number == 0)
@@ -86,6 +88,13 @@ static void updateTimer(void)
 		return;
 	}
 
+	if (!config_enableCallTimer)
+	{
+		stroked_text_layer_set_text(title, "");
+		return;
+	}
+
+
 	uint16_t minutes = elapsedTime / 60;
 	uint16_t seconds = elapsedTime % 60;
 
@@ -96,7 +105,6 @@ static void updateTimer(void)
 	convertTwoNumber(seconds, timerText, 3 + extraOffset);
 
 	stroked_text_layer_set_text(title, timerText);
-
 }
 
 static GRect moveAndCalculateTextSize(StrokedTextLayer* textLayer, int16_t yPosition, bool centerY, bool moveUp)
@@ -259,6 +267,46 @@ static void config_provider_callscreen(void* context) {
 
 }
 
+
+static void vibrate_cycle(void *data)
+{
+	if (vibrate)
+	{
+		vibratingNow = true;
+		vibes_double_pulse();
+		app_timer_register(500, vibration_cycle_finished, NULL);
+	}
+}
+
+static void vibration_cycle_finished(void *data)
+{
+	vibratingNow = false;
+	app_timer_register(500, vibrate_cycle, NULL);
+}
+
+
+static void second_tick()
+{
+	if (callEstablished)
+	{
+		elapsedTime++;
+		updateTimer();
+	}
+}
+
+
+static void start_vibrating()
+{
+	vibrate = true;
+	vibrate_cycle(NULL);
+}
+
+static void stop_vibrating()
+{
+	vibrate = false;
+	vibes_cancel();
+}
+
 void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterator *received) {
 
 	if (module == 1)
@@ -268,7 +316,12 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			uint8_t* flags = dict_find(received, 4)->value->data;
 			callEstablished = flags[0] == 1;
 			nameAtBottom = flags[1] == 1;
-			vibrate = flags[5] == 1 && canVibrate();
+			bool phoneAllowsVibration = flags[5] == 1;
+
+			if (!callEstablished && phoneAllowsVibration && canVibrate())
+				start_vibrating();
+			else
+				stop_vibrating();
 
 			uint8_t topIcon = flags[2];
 			uint8_t middleIcon = flags[3];
@@ -336,27 +389,6 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 	}
 }
 
-static void vibration_stopped(void* data)
-{
-	vibratingNow = false;
-}
-
-
-static void second_tick()
-{
-	if (callEstablished)
-	{
-		elapsedTime++;
-		updateTimer();
-	}
-	else if (vibrate)
-	{
-		vibratingNow = true;
-		vibes_double_pulse();
-		app_timer_register(500, vibration_stopped, NULL);
-	}
-}
-
 static void window_show(Window* me)
 {
 	if (config_lightCallWindow)
@@ -415,7 +447,10 @@ static void window_load(Window* me)
 	actions_menu_init();
 	actions_menu_attach(topLayer);
 
-	tick_timer_service_subscribe(SECOND_UNIT, (TickHandler) second_tick);
+	if (config_enableCallTimer)
+	{
+		tick_timer_service_subscribe(SECOND_UNIT, (TickHandler) second_tick);
+	}
 	accel_tap_service_subscribe(shake);
 
 	callerNameText[0] = 0;

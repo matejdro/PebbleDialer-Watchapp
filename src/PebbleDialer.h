@@ -20,6 +20,7 @@ extern bool config_noMenu;
 extern bool config_noFilterGroups;
 extern bool config_lightCallWindow;
 extern bool config_dontVibrateWhenCharging;
+extern bool config_enableCallTimer;
 extern uint8_t config_fontTimer;
 extern uint8_t config_fontName;
 extern uint8_t config_fontNumberType;
