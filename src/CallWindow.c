@@ -317,6 +317,7 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			callEstablished = flags[0] == 1;
 			nameAtBottom = flags[1] == 1;
 			bool phoneAllowsVibration = flags[5] == 1;
+			bool identityUpdate = flags[6] == 1;
 
 			if (!callEstablished && phoneAllowsVibration && canVibrate())
 				start_vibrating();
@@ -340,24 +341,25 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			updateTextFields();
 
 #ifdef PBL_COLOR
-			Tuple* callerImageSizeTuple = dict_find(received, 7);
-
-			if (callerImageSizeTuple != NULL)
+            if (identityUpdate)
 			{
-				callerImageSize = callerImageSizeTuple->value->uint16;
-				if (callerBitmap != NULL)
-				{
-					bitmap_layer_set_bitmap(callerBitmapLayer, NULL);
-					gbitmap_destroy(callerBitmap);
-					callerBitmap = NULL;
-				}
-				if (bitmapReceivingBuffer != NULL)
-				{
-					free(bitmapReceivingBuffer);
-				}
+				Tuple* callerImageSizeTuple = dict_find(received, 7);
 
-				bitmapReceivingBuffer = malloc(callerImageSize);
-				bitmapReceivingBufferHead = 0;
+				if (callerImageSizeTuple != NULL)
+				{
+					callerImageSize = callerImageSizeTuple->value->uint16;
+					if (callerBitmap != NULL) {
+						bitmap_layer_set_bitmap(callerBitmapLayer, NULL);
+						gbitmap_destroy(callerBitmap);
+						callerBitmap = NULL;
+					}
+					if (bitmapReceivingBuffer != NULL) {
+						free(bitmapReceivingBuffer);
+					}
+
+					bitmapReceivingBuffer = malloc(callerImageSize);
+					bitmapReceivingBufferHead = 0;
+				}
 			}
 #endif
 		}
