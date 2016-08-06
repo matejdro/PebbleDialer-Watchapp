@@ -7,6 +7,7 @@
 #include "MainMenuWindow.h"
 #include "NumberPickerWindow.h"
 #include "ActionsMenu.h"
+#include "PebbleDialer.h"
 
 const uint16_t PROTOCOL_VERSION = 10;
 
@@ -277,6 +278,9 @@ int main() {
 		appmessage_max_size = 124;
 	#endif
 
+	uint16_t fullscreenImageWidth = SCREEN_WIDTH - PBL_IF_ROUND_ELSE(ACTION_BAR_WIDTH / 2, ACTION_BAR_WIDTH);
+	uint16_t fullscreenImageHeight = HEIGHT_BELOW_STATUSBAR;
+
 	app_message_open(appmessage_max_size, 124);
 
 	DictionaryIterator *iterator;
@@ -285,6 +289,8 @@ int main() {
 	dict_write_uint8(iterator, 1, 0);
 	dict_write_uint16(iterator, 2, PROTOCOL_VERSION);
 	dict_write_uint32(iterator, 3, getCapabilities(appmessage_max_size));
+	dict_write_uint16(iterator, 4, fullscreenImageWidth);
+	dict_write_uint16(iterator, 5, fullscreenImageHeight);
 
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 	app_message_outbox_send();
