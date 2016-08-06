@@ -20,13 +20,14 @@ bool config_noFilterGroups;
 bool config_lightCallWindow;
 bool config_dontVibrateWhenCharging;
 bool config_enableCallTimer;
+bool config_enableOutgoingCallPopup;
 uint8_t config_fontTimer;
 uint8_t config_fontName;
 uint8_t config_fontNumberType;
 uint8_t config_fontNumber;
 
 bool closingMode;
-
+bool exitOnDataDelivered;
 
 static const char* fonts[] = {
 		FONT_KEY_GOTHIC_14,
@@ -115,6 +116,7 @@ static void received_config(DictionaryIterator *received)
 	config_lightCallWindow = (data[2] & 0x08) != 0;
 	config_dontVibrateWhenCharging = (data[2] & 0x10) != 0;
 	config_enableCallTimer = (data[2] & 0x20) != 0;
+	config_enableOutgoingCallPopup = (data[2] & 0x40) != 0;
 
 	config_numOfGroups = data[3];
 	config_fontTimer = data[4];
@@ -132,6 +134,12 @@ static void received_config(DictionaryIterator *received)
 bool canVibrate(void)
 {
 	return !config_dontVibrateWhenCharging || !battery_state_service_peek().is_plugged;
+}
+
+void onOutgoingCallEstablished()
+{
+	if (!config_enableOutgoingCallPopup)
+		exitOnDataDelivered = true;
 }
 
 static void received_data(DictionaryIterator *received, void *context) {
@@ -237,6 +245,9 @@ static void data_delivered(DictionaryIterator *sent, void *context) {
 		number_picker_window_data_sent();
 		break;
 	}
+
+	if (exitOnDataDelivered)
+		window_stack_pop_all(true);
 }
 
 static uint32_t getCapabilities(uint16_t maxInboxSize)

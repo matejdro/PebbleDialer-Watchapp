@@ -21,6 +21,7 @@ extern bool config_noFilterGroups;
 extern bool config_lightCallWindow;
 extern bool config_dontVibrateWhenCharging;
 extern bool config_enableCallTimer;
+extern bool config_enableOutgoingCallPopup;
 extern uint8_t config_fontTimer;
 extern uint8_t config_fontName;
 extern uint8_t config_fontNumberType;
@@ -29,11 +30,13 @@ extern uint8_t config_fontNumber;
 const char* config_getFontResource(int id);
 
 extern bool closingMode;
+extern bool exitOnDataDelivered;
 
 
 void setCurWindow(int window);
 void switchWindow(int window);
 void closeApp(void);
 bool canVibrate(void);
+void onOutgoingCallEstablished();
 
 #endif /* PEBBLEDIALER_H_ */

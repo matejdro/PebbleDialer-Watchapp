@@ -63,6 +63,8 @@ static void sendpickedEntry(int16_t pos, uint8_t mode)
 	app_message_outbox_send();
 
 	pickedEntry = -1;
+	if (mode == 0)
+		onOutgoingCallEstablished();
 }
 
 static void requestAdditionalEntries(void)

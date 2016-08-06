@@ -108,7 +108,7 @@ static void sendPickedNumber(int16_t pos)
 	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 
 	pickedNumber = -1;
-
+	onOutgoingCallEstablished();
 }
 
 static void requestAdditionalNumbers(void)
