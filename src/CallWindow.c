@@ -23,6 +23,8 @@ static GBitmap* buttonAnswer;
 static GBitmap* buttonEndCall;
 static GBitmap* buttonSpeakerOn;
 static GBitmap* buttonSpeakerOff;
+static GBitmap* buttonVolumeDown;
+static GBitmap* buttonVolumeUp;
 
 #ifdef PBL_COLOR
 static uint16_t callerImageSize;
@@ -32,7 +34,7 @@ static GBitmap* callerBitmap = NULL;
 static BitmapLayer* callerBitmapLayer;
 #endif
 
-static GBitmap** indexedIcons[6] = {&buttonAnswer, &buttonEndCall, &buttonMicOn, &buttonMicOff, &buttonSpeakerOn, &buttonSpeakerOff };
+static GBitmap** indexedIcons[8] = {&buttonAnswer, &buttonEndCall, &buttonMicOn, &buttonMicOff, &buttonSpeakerOn, &buttonSpeakerOff, &buttonVolumeDown, &buttonVolumeUp };
 
 static ActionBarLayer* actionBar;
 
@@ -437,6 +439,8 @@ static void window_load(Window* me)
 	buttonMicOn = gbitmap_create_with_resource(RESOURCE_ID_MIC_ON);
 	buttonSpeakerOn = gbitmap_create_with_resource(RESOURCE_ID_SPEAKER_ON);
 	buttonSpeakerOff = gbitmap_create_with_resource(RESOURCE_ID_SPEAKER_OFF);
+	buttonVolumeDown = gbitmap_create_with_resource(RESOURCE_ID_VOLUME_DOWN);
+	buttonVolumeUp = gbitmap_create_with_resource(RESOURCE_ID_VOLUME_UP);
 
 	actionBar = action_bar_layer_create();
 	action_bar_layer_set_click_config_provider(actionBar, (ClickConfigProvider) config_provider_callscreen);
@@ -469,6 +473,8 @@ static void window_unload(Window* me)
 	gbitmap_destroy(buttonMicOn);
 	gbitmap_destroy(buttonSpeakerOn);
 	gbitmap_destroy(buttonSpeakerOff);
+	gbitmap_destroy(buttonVolumeDown);
+	gbitmap_destroy(buttonVolumeUp);
 
 	stroked_text_layer_destroy(title);
 	stroked_text_layer_destroy(callerName);

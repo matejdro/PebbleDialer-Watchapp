@@ -49,6 +49,16 @@
         "name": "SPEAKER_OFF",
         "file": "speakeroff.png"
       },
+	        {
+        "type": "bitmap",
+        "name": "VOLUME_UP",
+        "file": "volumeup.png"
+      },
+      {
+        "type": "bitmap",
+        "name": "VOLUME_DOWN",
+        "file": "volumedown.png"
+      },
       {
         "type": "bitmap",
         "name": "CALL_HISTORY",
