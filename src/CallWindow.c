@@ -45,13 +45,17 @@ static uint16_t elapsedTime = 0;
 static bool vibrate;
 
 static bool vibratingNow = false;
+static uint32_t vibrationPatternSegments[20];
+static VibePattern vibrationPattern;
+static uint32_t totalVibePatternLength;
+static uint32_t vibrationCycleDelay;
 
 static char callerNameText[101];
 static char callerNumTypeText[31];
 static char callerNumberText[31];
 static bool nameAtBottom;
 
-static void vibration_cycle_finished(void *data);
+static void vibrate_cycle_finished(void* data);
 
 static void convertTwoNumber(int number, char* string, int offset)
 {
@@ -275,17 +279,22 @@ static void vibrate_cycle(void *data)
 	if (vibrate)
 	{
 		vibratingNow = true;
-		vibes_double_pulse();
-		app_timer_register(500, vibration_cycle_finished, NULL);
+
+		vibes_cancel();
+		vibes_enqueue_custom_pattern(vibrationPattern);
+		app_timer_register(totalVibePatternLength, vibrate_cycle_finished, NULL);
 	}
 }
 
-static void vibration_cycle_finished(void *data)
+static void vibrate_cycle_finished(void* data)
 {
 	vibratingNow = false;
-	app_timer_register(500, vibrate_cycle, NULL);
-}
 
+	if (vibrate)
+	{
+		app_timer_register(vibrationCycleDelay, vibrate_cycle, NULL);
+	}
+}
 
 static void second_tick()
 {
@@ -318,13 +327,7 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			uint8_t* flags = dict_find(received, 4)->value->data;
 			callEstablished = flags[0] == 1;
 			nameAtBottom = flags[1] == 1;
-			bool phoneAllowsVibration = flags[5] == 1;
 			bool identityUpdate = flags[6] == 1;
-
-			if (!callEstablished && phoneAllowsVibration && canVibrate())
-				start_vibrating();
-			else
-				stop_vibrating();
 
 			uint8_t topIcon = flags[2];
 			uint8_t middleIcon = flags[3];
@@ -364,6 +367,30 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 				}
 			}
 #endif
+			vibrationPattern.num_segments = flags[7] / 2;
+			totalVibePatternLength = 0;
+			for (unsigned int i = 0; i < vibrationPattern.num_segments * 2; i+= 2)
+			{
+				vibrationPatternSegments[i / 2] = flags[8 +i] | (flags[9 +i] << 8);
+				totalVibePatternLength += vibrationPatternSegments[i / 2];
+			}
+			vibrationPattern.durations = vibrationPatternSegments;
+
+			vibrationCycleDelay = 0;
+
+			// Manually trigger last pause to allow shake events occurring in between vibration cycles.
+			if (vibrationPattern.num_segments % 2 == 0)
+			{
+				vibrationCycleDelay = vibrationPatternSegments[vibrationPattern.num_segments - 1];
+				vibrationPattern.num_segments--;
+				totalVibePatternLength -= vibrationCycleDelay;
+			}
+
+			if (!callEstablished && totalVibePatternLength > 0 && canVibrate())
+				start_vibrating();
+			else
+				stop_vibrating();
+
 		}
 		else if (packet == 1)
 		{
