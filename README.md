@@ -1,6 +1,8 @@
 PebbleDialer-Watchapp
 =====================
 
-Watchapp part of the PebbleDialer
+Watchapp part of the Dialer for Pebble
 
-More information at http://forums.getpebble.com/discussion/5767/android-pebbledialer-new-call-controls-for-your-pebble
+Watch counterpart: https://github.com/matejdro/PebbleDialer-Watchapp  
+Pebble App Store entry: https://apps.getpebble.com/en_US/application/532323bf60c773c1420000a8  
+Discussion forums: https://plus.google.com/communities/105292167808840816317
