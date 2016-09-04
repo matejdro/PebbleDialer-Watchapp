@@ -15,5 +15,6 @@ void main_menu_show_menu(void);
 void main_menu_show_closing(void);
 void main_menu_show_old_watchapp(void);
 void main_menu_show_old_android(void);
+void main_menu_show_no_connection(void);
 
 #endif /* MAINMENUWINDOW_H_ */

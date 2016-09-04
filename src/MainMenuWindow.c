@@ -5,7 +5,7 @@
 #include "ContactsWindow.h"
 #include "MainMenuWindow.h"
 
-static Window* window;
+static Window* window = NULL;
 
 static char groupNames[20][21] = {};
 
@@ -24,7 +24,7 @@ static StatusBarLayer* statusBar;
 
 static bool menuLoaded = false;
 
-static void show_update_dialog(void);
+static void show_error_base(void);
 
 static void show_loading(void)
 {
@@ -48,18 +48,27 @@ void main_menu_show_closing(void)
 
 void main_menu_show_old_watchapp(void)
 {
-	show_update_dialog();
+    show_error_base();
 	text_layer_set_text(loadingLayer, "Dialer\nOutdated Watchapp \n\n Check your phone");
 
 }
 
 void main_menu_show_old_android(void)
 {
-	show_update_dialog();
+    show_error_base();
 	text_layer_set_text(loadingLayer, "Dialer\nUpdate Android App \n\n Open link:\n bit.ly/1KhZCog");
 }
 
-static void show_update_dialog(void)
+void main_menu_show_no_connection(void)
+{
+    if (window == NULL)
+        return;
+
+    show_error_base();
+    text_layer_set_text(loadingLayer, "Dialer\n\nPhone is not connected.");
+}
+
+static void show_error_base(void)
 {
 	layer_set_hidden((Layer *) loadingLayer, false);
 	layer_set_hidden((Layer *) quitTitle, true);
@@ -194,6 +203,10 @@ static void window_appears(Window *me)
 	{
 		main_menu_show_menu();
 	}
+    else if (!connection_service_peek_pebble_app_connection())
+    {
+        main_menu_show_no_connection();
+    }
 	else
 	{
 		show_loading();

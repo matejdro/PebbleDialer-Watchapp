@@ -277,6 +277,11 @@ static void send_initial_packet_and_start_timer(void *data)
 	if (!loadingMode)
 		return;
 
+    if (!connection_service_peek_pebble_app_connection())
+    {
+        main_menu_show_no_connection();
+        return;
+    }
 	send_initial_packet();
     app_timer_register(3000, send_initial_packet_and_start_timer, NULL);
 }
