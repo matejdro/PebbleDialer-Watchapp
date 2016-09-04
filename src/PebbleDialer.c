@@ -326,5 +326,12 @@ int main() {
 	switchWindow(0);
 	app_event_loop();
 	window_stack_pop_all(false);
-	return 0;
+
+    AppLaunchReason appLaunchReason = launch_reason();
+    if (appLaunchReason == APP_LAUNCH_PHONE && !config_dontClose) {
+        // If app was launched by phone and close to last app is disabled, always exit to the watchface instead of to the menu
+        exit_reason_set(APP_EXIT_ACTION_PERFORMED_SUCCESSFULLY);
+    }
+
+    return 0;
 }
