@@ -9,3 +9,4 @@ waf*
 
 CMakeLists.txt
 .idea
+node_modules/

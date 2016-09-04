@@ -1,0 +1,120 @@
+{
+  "version": "2.57.0",
+  "author": "matejdro",
+  "private": true,
+  "dependencies": {},
+  "keywords": [
+    "pebble-app"
+  ],
+  "pebble": {
+    "sdkVersion": "3",
+    "resources": {
+      "media": [
+        {
+          "memoryFormat": "1Bit",
+          "menuIcon": true,
+          "type": "bitmap",
+          "name": "ICON",
+          "file": "icon.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ANSWER",
+          "file": "answer.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "ENDCALL",
+          "file": "endcall.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "MIC_OFF",
+          "file": "mic_off.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "MIC_ON",
+          "file": "micon.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SPEAKER_ON",
+          "file": "speakeron.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "SPEAKER_OFF",
+          "file": "speakeroff.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "VOLUME_UP",
+          "file": "volumeup.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "VOLUME_DOWN",
+          "file": "volumedown.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "CALL_HISTORY",
+          "file": "callhistory.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "CONTACTS",
+          "file": "contacts.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "CONTACT_GROUP",
+          "file": "contactgroup.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "INCOMING_CALL",
+          "file": "incomingcall.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "OUTGOING_CALL",
+          "file": "outgoingcall.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "MISSED_CALL",
+          "file": "missedcall.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "MESSAGE",
+          "file": "message.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "CALL",
+          "file": "call.png"
+        }
+      ]
+    },
+    "projectType": "native",
+    "uuid": "158a074d-85ce-43d2-ab7d-14416ddc1058",
+    "messageKeys": {},
+    "enableMultiJS": false,
+    "displayName": "Dialer for Pebble",
+    "watchapp": {
+      "onlyShownOnCommunication": false,
+      "hiddenApp": false,
+      "watchface": false
+    },
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk"
+    ],
+    "capabilities": []
+  },
+  "name": "Dialer"
+}
