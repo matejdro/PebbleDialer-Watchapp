@@ -13,6 +13,8 @@ const uint16_t PROTOCOL_VERSION = 10;
 
 static uint8_t curWindow = 0;
 static bool gotConfig = false;
+static bool loadingMode;
+static uint16_t appmessage_max_size;
 
 bool config_dontClose;
 bool config_noMenu;
@@ -50,6 +52,8 @@ static const char* fonts[] = {
 		FONT_KEY_ROBOTO_BOLD_SUBSET_49,
 		FONT_KEY_DROID_SERIF_28_BOLD
 };
+
+static void send_initial_packet();
 
 const char* config_getFontResource(int id)
 {
@@ -97,6 +101,8 @@ void closeApp(void)
 
 static void received_config(DictionaryIterator *received)
 {
+    loadingMode = false;
+
 	uint8_t* data = dict_find(received, 2)->value->data;
 
 	uint16_t supportedVersion = (data[0] << 8) | (data[1]);
@@ -265,11 +271,39 @@ static uint32_t getCapabilities(uint16_t maxInboxSize)
 	return serializedCapabilities;
 }
 
+
+static void send_initial_packet_and_start_timer(void *data)
+{
+	if (!loadingMode)
+		return;
+
+	send_initial_packet();
+    app_timer_register(3000, send_initial_packet_and_start_timer, NULL);
+}
+
+
+static void send_initial_packet() {
+    uint16_t fullscreenImageWidth = SCREEN_WIDTH - PBL_IF_ROUND_ELSE(ACTION_BAR_WIDTH / 2, ACTION_BAR_WIDTH);
+    uint16_t fullscreenImageHeight = HEIGHT_BELOW_STATUSBAR;
+
+    DictionaryIterator *iterator;
+    app_message_outbox_begin(&iterator);
+    dict_write_uint8(iterator, 0, 0);
+    dict_write_uint8(iterator, 1, 0);
+    dict_write_uint16(iterator, 2, PROTOCOL_VERSION);
+    dict_write_uint32(iterator, 3, getCapabilities(appmessage_max_size));
+    dict_write_uint16(iterator, 4, fullscreenImageWidth);
+    dict_write_uint16(iterator, 5, fullscreenImageHeight);
+
+    app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
+    app_message_outbox_send();
+}
+
 int main() {
 	app_message_register_outbox_sent(data_delivered);
 	app_message_register_inbox_received(received_data);
 
-	uint16_t appmessage_max_size = app_message_inbox_size_maximum();
+	appmessage_max_size = app_message_inbox_size_maximum();
 	if (appmessage_max_size > 4096)
 		appmessage_max_size = 4096; //Limit inbox size to conserve RAM.
 
@@ -278,22 +312,11 @@ int main() {
 		appmessage_max_size = 124;
 	#endif
 
-	uint16_t fullscreenImageWidth = SCREEN_WIDTH - PBL_IF_ROUND_ELSE(ACTION_BAR_WIDTH / 2, ACTION_BAR_WIDTH);
-	uint16_t fullscreenImageHeight = HEIGHT_BELOW_STATUSBAR;
 
 	app_message_open(appmessage_max_size, 124);
 
-	DictionaryIterator *iterator;
-	app_message_outbox_begin(&iterator);
-	dict_write_uint8(iterator, 0, 0);
-	dict_write_uint8(iterator, 1, 0);
-	dict_write_uint16(iterator, 2, PROTOCOL_VERSION);
-	dict_write_uint32(iterator, 3, getCapabilities(appmessage_max_size));
-	dict_write_uint16(iterator, 4, fullscreenImageWidth);
-	dict_write_uint16(iterator, 5, fullscreenImageHeight);
-
-	app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
-	app_message_outbox_send();
+    loadingMode = true;
+    send_initial_packet_and_start_timer(NULL);
 
 	switchWindow(0);
 	app_event_loop();
