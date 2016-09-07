@@ -16,10 +16,11 @@ static GBitmap* contactGroupIcon;
 
 static TextLayer* loadingLayer;
 
-static const uint16_t ACTIVITY_INDICATOR_SIZE = 50;
-static const uint16_t ACTIVITY_INDICATOR_THICKNESS = 5;
-static ActivityIndicatorLayer *loadingIndicator;
-
+#ifndef PBL_LOW_MEMORY
+    static const uint16_t ACTIVITY_INDICATOR_SIZE = 50;
+    static const uint16_t ACTIVITY_INDICATOR_THICKNESS = 5;
+    static ActivityIndicatorLayer *loadingIndicator;
+#endif
 
 static TextLayer* quitTitle;
 static TextLayer* quitText;
@@ -39,8 +40,10 @@ static void show_loading(void)
 	layer_set_hidden((Layer *) quitText, true);
 	layer_set_hidden((Layer *) menuLayer, true);
 
+#ifndef PBL_LOW_MEMORY
     activity_indicator_layer_set_animating(loadingIndicator, true);
     layer_set_hidden(activity_indicator_layer_get_layer(loadingIndicator), false);
+#endif
 }
 
 void main_menu_show_closing(void)
@@ -83,11 +86,13 @@ static void show_error_base(void)
 	layer_set_hidden((Layer *) quitTitle, true);
 	layer_set_hidden((Layer *) quitText, true);
 	layer_set_hidden((Layer *) menuLayer, true);
+
+#ifndef PBL_LOW_MEMORY
     activity_indicator_layer_set_animating(loadingIndicator, false);
     layer_set_hidden(activity_indicator_layer_get_layer(loadingIndicator), true);
+#endif
 
 	text_layer_set_font(loadingLayer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-
 }
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *me, void *data) {
@@ -133,8 +138,11 @@ void main_menu_show_menu(void)
 	layer_set_hidden((Layer *) menuLayer, false);
 	layer_set_hidden((Layer *) quitTitle, true);
 	layer_set_hidden((Layer *) quitText, true);
-    activity_indicator_layer_set_animating(loadingIndicator, false);
-    layer_set_hidden(activity_indicator_layer_get_layer(loadingIndicator), true);
+
+#ifndef PBL_LOW_MEMORY
+     activity_indicator_layer_set_animating(loadingIndicator, false);
+     layer_set_hidden(activity_indicator_layer_get_layer(loadingIndicator), true);
+#endif
 }
 
 void main_menu_close(void)
@@ -252,9 +260,15 @@ static void window_load(Window *me) {
 	text_layer_set_font(quitText, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(topLayer, (Layer*) quitText);
 
+#ifndef PBL_LOW_MEMORY
     loadingIndicator = activity_indicator_layer_create(GRect(SCREEN_WIDTH / 2 - ACTIVITY_INDICATOR_SIZE / 2, HEIGHT_BELOW_STATUSBAR / 2 - ACTIVITY_INDICATOR_SIZE / 2 + STATUS_BAR_LAYER_HEIGHT, ACTIVITY_INDICATOR_SIZE, ACTIVITY_INDICATOR_SIZE));
     activity_indicator_layer_set_thickness(loadingIndicator, ACTIVITY_INDICATOR_THICKNESS);
     layer_add_child(topLayer, activity_indicator_layer_get_layer(loadingIndicator));
+
+    text_layer_set_text(loadingLayer, "Dialer");
+#else
+    text_layer_set_text(loadingLayer, "Dialer\n\nLoading");
+#endif
 
     menuLayer = menu_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
 
@@ -289,7 +303,9 @@ static void window_unload(Window* me)
 
 	menu_layer_destroy(menuLayer);
 	status_bar_layer_destroy(statusBar);
-
+#ifndef PBL_LOW_MEMORY
+    activity_indicator_layer_destroy(loadingIndicator);
+#endif
 	window_destroy(me);
 }
 

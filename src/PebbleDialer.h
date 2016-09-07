@@ -14,6 +14,10 @@
 
 #define HEIGHT_BELOW_STATUSBAR (SCREEN_HEIGHT - STATUS_BAR_LAYER_HEIGHT)
 
+#ifdef PBL_PLATFORM_APLITE
+    #define PBL_LOW_MEMORY
+#endif
+
 extern bool config_dontClose;
 extern uint8_t config_numOfGroups;
 extern bool config_noMenu;
