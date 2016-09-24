@@ -104,7 +104,7 @@
     "uuid": "158a074d-85ce-43d2-ab7d-14416ddc1058",
     "messageKeys": {},
     "enableMultiJS": false,
-    "displayName": "Dialer for Pebble",
+    "displayName": "Dialer",
     "watchapp": {
       "onlyShownOnCommunication": false,
       "hiddenApp": false,
