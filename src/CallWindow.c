@@ -4,18 +4,17 @@
 #include "util.h"
 #include "PebbleDialer.h"
 #include "MainMenuWindow.h"
-#include "StrokedTextLayer.h"
 #include "ActionsMenu.h"
 
 static Window* window;
 
-static StrokedTextLayer* title;
+static TextLayer* title;
 static char timerText[10];
 
 static GSize windowFrame;
-static StrokedTextLayer* callerName;
-static StrokedTextLayer* callerNumType;
-static StrokedTextLayer* callerNumber;
+static TextLayer* callerName;
+static TextLayer* callerNumType;
+static TextLayer* callerNumber;
 
 static GBitmap* buttonMicOn;
 static GBitmap* buttonMicOff;
@@ -90,13 +89,13 @@ static void updateTimer(void)
 {
 	if (!callEstablished)
 	{
-		stroked_text_layer_set_text(title, "Incoming Call");
+		text_layer_set_text(title, "Incoming Call");
 		return;
 	}
 
 	if (!config_enableCallTimer)
 	{
-		stroked_text_layer_set_text(title, "");
+		text_layer_set_text(title, "");
 		return;
 	}
 
@@ -110,13 +109,15 @@ static void updateTimer(void)
 	timerText[2 + extraOffset] = ':';
 	convertTwoNumber(seconds, timerText, 3 + extraOffset);
 
-	stroked_text_layer_set_text(title, timerText);
+	text_layer_set_text(title, timerText);
 }
 
-static GRect moveAndCalculateTextSize(StrokedTextLayer* textLayer, int16_t yPosition, bool centerY, bool moveUp)
+static GRect moveAndCalculateTextSize(TextLayer* textLayer, int16_t yPosition, bool centerY, bool moveUp)
 {
-	layer_set_frame(stroked_text_layer_get_layer(textLayer), GRect(0, yPosition, windowFrame.w, 1000));
-	GSize size = stroked_text_layer_get_content_size(textLayer);
+    uint16_t startX = layer_get_frame(text_layer_get_layer(textLayer)).origin.x;
+
+	layer_set_frame(text_layer_get_layer(textLayer), GRect(startX, yPosition, windowFrame.w - startX, 1000));
+	GSize size = text_layer_get_content_size(textLayer);
 	size.h += 3;
 
 	if (centerY)
@@ -124,10 +125,9 @@ static GRect moveAndCalculateTextSize(StrokedTextLayer* textLayer, int16_t yPosi
 	if (moveUp)
 		yPosition -= size.h;
 
-	GRect frame = GRect(0, yPosition, windowFrame.w, size.h);
-	layer_set_frame(stroked_text_layer_get_layer(textLayer), frame);
+	GRect frame = GRect(startX, yPosition, windowFrame.w - startX, size.h);
+	layer_set_frame(text_layer_get_layer(textLayer), frame);
 	return frame;
-	return GRect(0, 0, 0, 0);
 }
 
 static void updateTextFields(void)
@@ -138,19 +138,27 @@ static void updateTextFields(void)
 	GRect timerPosition = moveAndCalculateTextSize(title, timerY, false, false);
 
 	//Caller name is below timer
-	stroked_text_layer_set_text(callerName, nameAtBottom ? "" : callerNameText);
+	text_layer_set_text(callerName, nameAtBottom ? "" : callerNameText);
 	int16_t nameY = timerPosition.origin.y + timerPosition.size.h;
 	moveAndCalculateTextSize(callerName, nameY, false, false);
 
 	//Caller number is near the bottom
-	stroked_text_layer_set_text(callerNumber, nameAtBottom ? callerNameText : callerNumberText);
-	int16_t callerNumberY = windowFrame.h - 10;
+	text_layer_set_text(callerNumber, nameAtBottom ? callerNameText : callerNumberText);
+	int16_t callerNumberY = windowFrame.h - PBL_IF_ROUND_ELSE(20, 10);
 	GRect callerNumberFrame = moveAndCalculateTextSize(callerNumber, callerNumberY, false, true);
 
 	//Caller number type is above caller number
-	stroked_text_layer_set_text(callerNumType, callerNumTypeText);
+	text_layer_set_text(callerNumType, callerNumTypeText);
 	int16_t callerNumberTypeY = callerNumberFrame.origin.y;
 	moveAndCalculateTextSize(callerNumType, callerNumberTypeY, false, true);
+}
+
+static void setTextFieldsColor(GColor color)
+{
+    text_layer_set_text_color(title, color);
+    text_layer_set_text_color(callerName, color);
+    text_layer_set_text_color(callerNumber, color);
+    text_layer_set_text_color(callerNumType, color);
 }
 
 static void sendAction(int buttonId)
@@ -357,6 +365,7 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 						bitmap_layer_set_bitmap(callerBitmapLayer, NULL);
 						gbitmap_destroy(callerBitmap);
 						callerBitmap = NULL;
+                        setTextFieldsColor(GColorBlack);
 					}
 					if (bitmapReceivingBuffer != NULL) {
 						free(bitmapReceivingBuffer);
@@ -414,6 +423,7 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			{
 				callerBitmap = gbitmap_create_from_png_data(bitmapReceivingBuffer, callerImageSize);
 				bitmap_layer_set_bitmap(callerBitmapLayer, callerBitmap);
+                setTextFieldsColor(GColorWhite);
 			}
 		}
 #endif
@@ -441,24 +451,30 @@ static void window_load(Window* me)
 	#endif
 
 
-	title = stroked_text_layer_create(GRectZero);
-	stroked_text_layer_set_font(title, fonts_get_system_font(config_getFontResource(config_fontTimer)));
-	layer_add_child(topLayer, stroked_text_layer_get_layer(title));
+	title = text_layer_create(GRect(PBL_IF_ROUND_ELSE(ACTION_BAR_WIDTH, 0), 0, 0, 0));
+	text_layer_set_font(title, fonts_get_system_font(config_getFontResource(config_fontTimer)));
+    text_layer_set_text_alignment(title, GTextAlignmentCenter);
+    text_layer_set_background_color(title, GColorClear);
+	layer_add_child(topLayer, text_layer_get_layer(title));
 
-	callerName = stroked_text_layer_create(GRectZero);
-	stroked_text_layer_set_font(callerName, fonts_get_system_font(config_getFontResource(config_fontName)));
-	stroked_text_layer_set_text_flow(callerName, true);
-	layer_add_child(topLayer, stroked_text_layer_get_layer(callerName));
+	callerName = text_layer_create(GRect(0, 0, 0, 0));
+	text_layer_set_font(callerName, fonts_get_system_font(config_getFontResource(config_fontName)));;
+    text_layer_set_text_alignment(callerName, GTextAlignmentCenter);
+    text_layer_set_background_color(callerName, GColorClear);
+	layer_add_child(topLayer, text_layer_get_layer(callerName));
+    text_layer_enable_screen_text_flow_and_paging(callerName, true);
 
-	callerNumType = stroked_text_layer_create(GRectZero);
-	stroked_text_layer_set_font(callerNumType, fonts_get_system_font(config_getFontResource(config_fontNumberType)));
-	stroked_text_layer_set_text_flow(callerNumType, true);
-	layer_add_child(topLayer, stroked_text_layer_get_layer(callerNumType));
+	callerNumType = text_layer_create(GRect(PBL_IF_ROUND_ELSE(ACTION_BAR_WIDTH, 0), 0, 0, 0));
+	text_layer_set_font(callerNumType, fonts_get_system_font(config_getFontResource(config_fontNumberType)));;
+    text_layer_set_text_alignment(callerNumType, GTextAlignmentCenter);
+    text_layer_set_background_color(callerNumType, GColorClear);
+	layer_add_child(topLayer, text_layer_get_layer(callerNumType));
 
-	callerNumber = stroked_text_layer_create(GRectZero);
-	stroked_text_layer_set_font(callerNumber, fonts_get_system_font(config_getFontResource(config_fontNumber)));
-	stroked_text_layer_set_text_flow(callerNumber, true);
-	layer_add_child(topLayer, stroked_text_layer_get_layer(callerNumber));
+	callerNumber = text_layer_create(GRect(PBL_IF_ROUND_ELSE(ACTION_BAR_WIDTH, 0), 0, 0, 0));
+	text_layer_set_font(callerNumber, fonts_get_system_font(config_getFontResource(config_fontNumber)));;
+    text_layer_set_text_alignment(callerNumber, GTextAlignmentCenter);
+    text_layer_set_background_color(callerNumber, GColorClear);
+	layer_add_child(topLayer, text_layer_get_layer(callerNumber));
 
 	buttonAnswer = gbitmap_create_with_resource(RESOURCE_ID_ANSWER);
 	buttonEndCall = gbitmap_create_with_resource(RESOURCE_ID_ENDCALL);
@@ -472,7 +488,6 @@ static void window_load(Window* me)
 	actionBar = action_bar_layer_create();
 	action_bar_layer_set_click_config_provider(actionBar, (ClickConfigProvider) config_provider_callscreen);
 	action_bar_layer_add_to_window(actionBar, window);
-
 	layer_add_child(topLayer, action_bar_layer_get_layer(actionBar));
 
 	statusBar = status_bar_layer_create();
@@ -503,10 +518,10 @@ static void window_unload(Window* me)
 	gbitmap_destroy(buttonVolumeDown);
 	gbitmap_destroy(buttonVolumeUp);
 
-	stroked_text_layer_destroy(title);
-	stroked_text_layer_destroy(callerName);
-	stroked_text_layer_destroy(callerNumType);
-	stroked_text_layer_destroy(callerNumber);
+	text_layer_destroy(title);
+	text_layer_destroy(callerName);
+	text_layer_destroy(callerNumType);
+	text_layer_destroy(callerNumber);
 	action_bar_layer_destroy(actionBar);
 
 	status_bar_layer_destroy(statusBar);
