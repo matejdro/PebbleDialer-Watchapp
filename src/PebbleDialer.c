@@ -9,7 +9,7 @@
 #include "ActionsMenu.h"
 #include "PebbleDialer.h"
 
-const uint16_t PROTOCOL_VERSION = 10;
+const uint16_t PROTOCOL_VERSION = 11;
 
 static uint8_t curWindow = 0;
 static bool gotConfig = false;
