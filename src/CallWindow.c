@@ -326,6 +326,14 @@ static void stop_vibrating()
 	vibes_cancel();
 }
 
+static void set_icon(ButtonId buttonId, uint8_t iconId)
+{
+	if (iconId == 0xFF) //Empty icon
+		action_bar_layer_set_icon(actionBar, buttonId, NULL);
+	else
+		action_bar_layer_set_icon(actionBar, buttonId, *indexedIcons[iconId]);
+}
+
 void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterator *received) {
 
 	if (module == 1)
@@ -341,9 +349,9 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			uint8_t middleIcon = flags[3];
 			uint8_t bottomIcon = flags[4];
 
-			action_bar_layer_set_icon(actionBar, BUTTON_ID_UP, *indexedIcons[topIcon]);
-			action_bar_layer_set_icon(actionBar, BUTTON_ID_SELECT, *indexedIcons[middleIcon]);
-			action_bar_layer_set_icon(actionBar, BUTTON_ID_DOWN, *indexedIcons[bottomIcon]);
+			set_icon(BUTTON_ID_UP, topIcon);
+			set_icon(BUTTON_ID_SELECT, middleIcon);
+			set_icon(BUTTON_ID_DOWN, bottomIcon);
 
 			strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
 			strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
