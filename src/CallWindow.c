@@ -16,14 +16,9 @@ static TextLayer* callerName;
 static TextLayer* callerNumType;
 static TextLayer* callerNumber;
 
-static GBitmap* buttonMicOn;
-static GBitmap* buttonMicOff;
-static GBitmap* buttonAnswer;
-static GBitmap* buttonEndCall;
-static GBitmap* buttonSpeakerOn;
-static GBitmap* buttonSpeakerOff;
-static GBitmap* buttonVolumeDown;
-static GBitmap* buttonVolumeUp;
+static GBitmap* iconTop = NULL;
+static GBitmap* iconMiddle = NULL;
+static GBitmap* iconBottom = NULL;
 
 #ifdef PBL_COLOR
 static uint16_t callerImageSize;
@@ -33,7 +28,7 @@ static GBitmap* callerBitmap = NULL;
 static BitmapLayer* callerBitmapLayer;
 #endif
 
-static GBitmap** indexedIcons[8] = {&buttonAnswer, &buttonEndCall, &buttonMicOn, &buttonMicOff, &buttonSpeakerOn, &buttonSpeakerOff, &buttonVolumeDown, &buttonVolumeUp };
+static uint32_t iconResources[8] = {RESOURCE_ID_ANSWER, RESOURCE_ID_ENDCALL, RESOURCE_ID_MIC_ON, RESOURCE_ID_MIC_OFF, RESOURCE_ID_SPEAKER_OFF, RESOURCE_ID_SPEAKER_ON, RESOURCE_ID_VOLUME_DOWN, RESOURCE_ID_VOLUME_UP };
 
 static ActionBarLayer* actionBar;
 
@@ -326,12 +321,22 @@ static void stop_vibrating()
 	vibes_cancel();
 }
 
-static void set_icon(ButtonId buttonId, uint8_t iconId)
+static void load_icon(GBitmap** into, uint8_t iconId)
 {
-	if (iconId == 0xFF) //Empty icon
-		action_bar_layer_set_icon(actionBar, buttonId, NULL);
-	else
-		action_bar_layer_set_icon(actionBar, buttonId, *indexedIcons[iconId]);
+    GBitmap* bitmap = *into;
+    if (bitmap != NULL)
+        gbitmap_destroy(bitmap);
+
+    if (iconId == 0xFF)
+        *into = NULL;
+    else
+        *into = gbitmap_create_with_resource(iconResources[iconId]);
+}
+
+static void set_icon(GBitmap** container, ButtonId buttonId, uint8_t iconId)
+{
+    load_icon(container, iconId);
+    action_bar_layer_set_icon(actionBar, buttonId, *container);
 }
 
 void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterator *received) {
@@ -345,13 +350,13 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			nameAtBottom = flags[1] == 1;
 			bool identityUpdate = flags[6] == 1;
 
-			uint8_t topIcon = flags[2];
-			uint8_t middleIcon = flags[3];
-			uint8_t bottomIcon = flags[4];
+			uint8_t topIconId = flags[2];
+			uint8_t middleIconId = flags[3];
+			uint8_t bottomIconId = flags[4];
 
-			set_icon(BUTTON_ID_UP, topIcon);
-			set_icon(BUTTON_ID_SELECT, middleIcon);
-			set_icon(BUTTON_ID_DOWN, bottomIcon);
+			set_icon(&iconTop, BUTTON_ID_UP, topIconId);
+			set_icon(&iconMiddle, BUTTON_ID_SELECT, middleIconId);
+			set_icon(&iconBottom, BUTTON_ID_DOWN, bottomIconId);
 
 			strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
 			strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
@@ -484,15 +489,6 @@ static void window_load(Window* me)
     text_layer_set_background_color(callerNumber, GColorClear);
 	layer_add_child(topLayer, text_layer_get_layer(callerNumber));
 
-	buttonAnswer = gbitmap_create_with_resource(RESOURCE_ID_ANSWER);
-	buttonEndCall = gbitmap_create_with_resource(RESOURCE_ID_ENDCALL);
-	buttonMicOff = gbitmap_create_with_resource(RESOURCE_ID_MIC_OFF);
-	buttonMicOn = gbitmap_create_with_resource(RESOURCE_ID_MIC_ON);
-	buttonSpeakerOn = gbitmap_create_with_resource(RESOURCE_ID_SPEAKER_ON);
-	buttonSpeakerOff = gbitmap_create_with_resource(RESOURCE_ID_SPEAKER_OFF);
-	buttonVolumeDown = gbitmap_create_with_resource(RESOURCE_ID_VOLUME_DOWN);
-	buttonVolumeUp = gbitmap_create_with_resource(RESOURCE_ID_VOLUME_UP);
-
 	actionBar = action_bar_layer_create();
 	action_bar_layer_set_click_config_provider(actionBar, (ClickConfigProvider) config_provider_callscreen);
 	action_bar_layer_add_to_window(actionBar, window);
@@ -517,14 +513,9 @@ static void window_load(Window* me)
 
 static void window_unload(Window* me)
 {
-	gbitmap_destroy(buttonAnswer);
-	gbitmap_destroy(buttonEndCall);
-	gbitmap_destroy(buttonMicOff);
-	gbitmap_destroy(buttonMicOn);
-	gbitmap_destroy(buttonSpeakerOn);
-	gbitmap_destroy(buttonSpeakerOff);
-	gbitmap_destroy(buttonVolumeDown);
-	gbitmap_destroy(buttonVolumeUp);
+	gbitmap_destroy(iconTop);
+	gbitmap_destroy(iconMiddle);
+	gbitmap_destroy(iconBottom);
 
 	text_layer_destroy(title);
 	text_layer_destroy(callerName);
