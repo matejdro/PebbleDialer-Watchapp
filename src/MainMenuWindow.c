@@ -215,6 +215,58 @@ void main_menu_data_received(int packetId, DictionaryIterator* data)
 
 static void window_appears(Window *me)
 {
+    callHistoryIcon = gbitmap_create_with_resource(RESOURCE_ID_CALL_HISTORY);
+    contactsIcon = gbitmap_create_with_resource(RESOURCE_ID_CONTACTS);
+    contactGroupIcon = gbitmap_create_with_resource(RESOURCE_ID_CONTACT_GROUP);
+
+    Layer* topLayer = window_get_root_layer(me);
+    loadingLayer = text_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
+    text_layer_set_text_alignment(loadingLayer, GTextAlignmentCenter);
+    text_layer_set_text(loadingLayer, "Dialer");
+    text_layer_set_font(loadingLayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+    layer_add_child(topLayer, (Layer*) loadingLayer);
+
+    quitTitle = text_layer_create(GRect(0, 70 + STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 50));
+    text_layer_set_text_alignment(quitTitle, GTextAlignmentCenter);
+    text_layer_set_text(quitTitle, "Press back again if app does not close in several seconds");
+    layer_add_child(topLayer, (Layer*) quitTitle);
+
+    quitText = text_layer_create(GRect(0, 10 + STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 50));
+    text_layer_set_text_alignment(quitText, GTextAlignmentCenter);
+    text_layer_set_text(quitText, "Quitting...\n Please wait");
+    text_layer_set_font(quitText, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+    layer_add_child(topLayer, (Layer*) quitText);
+
+#ifndef PBL_LOW_MEMORY
+    loadingIndicator = activity_indicator_layer_create(GRect(SCREEN_WIDTH / 2 - ACTIVITY_INDICATOR_SIZE / 2, HEIGHT_BELOW_STATUSBAR / 2 - ACTIVITY_INDICATOR_SIZE / 2 + STATUS_BAR_LAYER_HEIGHT, ACTIVITY_INDICATOR_SIZE, ACTIVITY_INDICATOR_SIZE));
+    activity_indicator_layer_set_thickness(loadingIndicator, ACTIVITY_INDICATOR_THICKNESS);
+    layer_add_child(topLayer, activity_indicator_layer_get_layer(loadingIndicator));
+
+    text_layer_set_text(loadingLayer, "Dialer");
+#else
+    text_layer_set_text(loadingLayer, "Dialer\n\nLoading");
+#endif
+
+    menuLayer = menu_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
+
+    // Set all the callbacks for the menu layer
+    menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){
+            .get_num_sections = menu_get_num_sections_callback,
+            .get_num_rows = menu_get_num_rows_callback,
+            .draw_row = menu_draw_row_callback,
+            .select_click = menu_select_callback,
+    });
+
+#ifdef PBL_COLOR
+    menu_layer_set_highlight_colors(menuLayer, GColorJaegerGreen, GColorBlack);
+#endif
+
+    menu_layer_set_click_config_onto_window(menuLayer, window);
+    layer_add_child(topLayer, (Layer*) menuLayer);
+
+    statusBar = status_bar_layer_create();
+    layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
+
 	if (closingMode)
 	{
 		main_menu_show_closing();
@@ -237,61 +289,7 @@ static void window_appears(Window *me)
 	setCurWindow(0);
 }
 
-static void window_load(Window *me) {
-	callHistoryIcon = gbitmap_create_with_resource(RESOURCE_ID_CALL_HISTORY);
-	contactsIcon = gbitmap_create_with_resource(RESOURCE_ID_CONTACTS);
-	contactGroupIcon = gbitmap_create_with_resource(RESOURCE_ID_CONTACT_GROUP);
-
-	Layer* topLayer = window_get_root_layer(me);
-	loadingLayer = text_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
-	text_layer_set_text_alignment(loadingLayer, GTextAlignmentCenter);
-	text_layer_set_text(loadingLayer, "Dialer");
-	text_layer_set_font(loadingLayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	layer_add_child(topLayer, (Layer*) loadingLayer);
-
-	quitTitle = text_layer_create(GRect(0, 70 + STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 50));
-	text_layer_set_text_alignment(quitTitle, GTextAlignmentCenter);
-	text_layer_set_text(quitTitle, "Press back again if app does not close in several seconds");
-	layer_add_child(topLayer, (Layer*) quitTitle);
-
-	quitText = text_layer_create(GRect(0, 10 + STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, 50));
-	text_layer_set_text_alignment(quitText, GTextAlignmentCenter);
-	text_layer_set_text(quitText, "Quitting...\n Please wait");
-	text_layer_set_font(quitText, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	layer_add_child(topLayer, (Layer*) quitText);
-
-#ifndef PBL_LOW_MEMORY
-    loadingIndicator = activity_indicator_layer_create(GRect(SCREEN_WIDTH / 2 - ACTIVITY_INDICATOR_SIZE / 2, HEIGHT_BELOW_STATUSBAR / 2 - ACTIVITY_INDICATOR_SIZE / 2 + STATUS_BAR_LAYER_HEIGHT, ACTIVITY_INDICATOR_SIZE, ACTIVITY_INDICATOR_SIZE));
-    activity_indicator_layer_set_thickness(loadingIndicator, ACTIVITY_INDICATOR_THICKNESS);
-    layer_add_child(topLayer, activity_indicator_layer_get_layer(loadingIndicator));
-
-    text_layer_set_text(loadingLayer, "Dialer");
-#else
-    text_layer_set_text(loadingLayer, "Dialer\n\nLoading");
-#endif
-
-    menuLayer = menu_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, SCREEN_WIDTH, HEIGHT_BELOW_STATUSBAR));
-
-	// Set all the callbacks for the menu layer
-	menu_layer_set_callbacks(menuLayer, NULL, (MenuLayerCallbacks){
-			.get_num_sections = menu_get_num_sections_callback,
-			.get_num_rows = menu_get_num_rows_callback,
-			.draw_row = menu_draw_row_callback,
-			.select_click = menu_select_callback,
-	});
-
-	#ifdef PBL_COLOR
-		menu_layer_set_highlight_colors(menuLayer, GColorJaegerGreen, GColorBlack);
-	#endif
-
-	menu_layer_set_click_config_onto_window(menuLayer, window);
-	layer_add_child(topLayer, (Layer*) menuLayer);
-
-	statusBar = status_bar_layer_create();
-	layer_add_child(topLayer, status_bar_layer_get_layer(statusBar));
-}
-
-static void window_unload(Window* me)
+static void window_disappears(Window* me)
 {
 	gbitmap_destroy(callHistoryIcon);
 	gbitmap_destroy(contactsIcon);
@@ -306,8 +304,13 @@ static void window_unload(Window* me)
 #ifndef PBL_LOW_MEMORY
     activity_indicator_layer_destroy(loadingIndicator);
 #endif
-	window_destroy(me);
 }
+
+static void window_unload(Window* me)
+{
+    window_destroy(me);
+}
+
 
 void main_menu_init(void)
 {
@@ -315,7 +318,7 @@ void main_menu_init(void)
 
 	window_set_window_handlers(window, (WindowHandlers){
 		.appear = window_appears,
-		.load = window_load,
+        .disappear = window_disappears,
 		.unload = window_unload
 	});
 
