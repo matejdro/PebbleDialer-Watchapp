@@ -305,6 +305,16 @@ static void send_initial_packet() {
 }
 
 int main() {
+	if (quiet_time_is_active())
+	{
+		AppLaunchReason launchReason = launch_reason();
+		if (launchReason == APP_LAUNCH_PHONE)
+		{
+			// Incoming call popup was launched by phone, but quiet time is active. Lets bail out.
+			return 0;
+		}
+	}
+
 	app_message_register_outbox_sent(data_delivered);
 	app_message_register_inbox_received(received_data);
 
