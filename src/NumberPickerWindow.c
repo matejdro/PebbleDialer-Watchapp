@@ -6,6 +6,7 @@
 #include "util.h"
 #include "ActionsMenu.h"
 #include "CircularBuffer.h"
+#include "pebble-rtltr/rtltr.h"
 
 static Window* window;
 
@@ -182,7 +183,7 @@ static void receivedNumbers(DictionaryIterator* data)
 		if (action == NULL)
 			continue;
 
-		strcpy(action->numberType, dict_find(data, 4 + i)->value->cstring);
+		rtltr_strcpy(action->numberType, dict_find(data, 4 + i)->value->cstring);
 		strcpy(action->number, dict_find(data, 6 + i)->value->cstring);
 		action->actionType = actions[i];
 	}

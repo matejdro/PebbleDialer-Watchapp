@@ -4,6 +4,7 @@
 #include "PebbleDialer.h"
 #include "util.h"
 #include "CircularBuffer.h"
+#include "pebble-rtltr/rtltr.h"
 
 static Window* window;
 
@@ -223,7 +224,7 @@ static void receivedContactNames(DictionaryIterator* data)
 
 		char* contact = cb_getEntryForFilling(contacts, groupPos);
 		if (contact != NULL)
-			strcpy(contact, dict_find(data, 4 + i)->value->cstring);
+			rtltr_strcpy(contact, dict_find(data, 4 + i)->value->cstring);
 	}
 
 	if (numMaxContacts == 0)
