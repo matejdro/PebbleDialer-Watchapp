@@ -360,8 +360,13 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			set_icon(&iconMiddle, BUTTON_ID_SELECT, middleIconId);
 			set_icon(&iconBottom, BUTTON_ID_DOWN, bottomIconId);
 
+#ifndef PBL_LOW_MEMORY
 			rtltr_strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
 			rtltr_strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
+#else
+			strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
+			strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
+#endif
 
 			if (callEstablished)
 				elapsedTime = dict_find(received, 5)->value->uint16;
@@ -418,7 +423,11 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 		}
 		else if (packet == 1)
 		{
+#ifndef PBL_LOW_MEMORY
 			rtltr_strcpy(callerNameText, dict_find(received, 2)->value->cstring);
+#else
+			strcpy(callerNameText, dict_find(received, 2)->value->cstring);
+#endif
 			updateTextFields();
 		}
 #ifdef PBL_COLOR

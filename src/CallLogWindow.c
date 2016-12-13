@@ -163,9 +163,14 @@ static void receivedEntries(DictionaryIterator* data)
 	if (entry != NULL)
 	{
 		entry->type = dict_find(data, 4)->value->uint8;
+#ifndef PBL_LOW_MEMORY
 		rtltr_strcpy(entry->name, dict_find(data, 5)->value->cstring);
-		strcpy(entry->date, dict_find(data, 6)->value->cstring);
 		rtltr_strcpy(entry->number, dict_find(data, 7)->value->cstring);
+#else
+		strcpy(entry->name, dict_find(data, 5)->value->cstring);
+		strcpy(entry->number, dict_find(data, 7)->value->cstring);
+#endif
+		strcpy(entry->date, dict_find(data, 6)->value->cstring);
 	}
 
 	menu_layer_reload_data(menuLayer);

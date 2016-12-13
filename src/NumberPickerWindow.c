@@ -183,7 +183,11 @@ static void receivedNumbers(DictionaryIterator* data)
 		if (action == NULL)
 			continue;
 
+#ifndef PBL_LOW_MEMORY
 		rtltr_strcpy(action->numberType, dict_find(data, 4 + i)->value->cstring);
+#else
+		strcpy(action->numberType, dict_find(data, 4 + i)->value->cstring);
+#endif
 		strcpy(action->number, dict_find(data, 6 + i)->value->cstring);
 		action->actionType = actions[i];
 	}
