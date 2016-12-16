@@ -5,6 +5,7 @@
 #include "PebbleDialer.h"
 #include "MainMenuWindow.h"
 #include "ActionsMenu.h"
+#include "pebble-rtltr/rtltr.h"
 
 static Window* window;
 
@@ -348,8 +349,9 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			uint8_t* flags = dict_find(received, 4)->value->data;
 			callEstablished = flags[0] == 1;
 			nameAtBottom = flags[1] == 1;
+#ifdef PBL_COLOR
 			bool identityUpdate = flags[6] == 1;
-
+#endif
 			uint8_t topIconId = flags[2];
 			uint8_t middleIconId = flags[3];
 			uint8_t bottomIconId = flags[4];
@@ -358,8 +360,13 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 			set_icon(&iconMiddle, BUTTON_ID_SELECT, middleIconId);
 			set_icon(&iconBottom, BUTTON_ID_DOWN, bottomIconId);
 
+#ifndef PBL_LOW_MEMORY
+			rtltr_strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
+			rtltr_strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
+#else
 			strcpy(callerNumberText, dict_find(received, 3)->value->cstring);
 			strcpy(callerNumTypeText, dict_find(received, 2)->value->cstring);
+#endif
 
 			if (callEstablished)
 				elapsedTime = dict_find(received, 5)->value->uint16;
@@ -416,7 +423,11 @@ void call_window_data_received(uint8_t module, uint8_t packet, DictionaryIterato
 		}
 		else if (packet == 1)
 		{
+#ifndef PBL_LOW_MEMORY
+			rtltr_strcpy(callerNameText, dict_find(received, 2)->value->cstring);
+#else
 			strcpy(callerNameText, dict_find(received, 2)->value->cstring);
+#endif
 			updateTextFields();
 		}
 #ifdef PBL_COLOR

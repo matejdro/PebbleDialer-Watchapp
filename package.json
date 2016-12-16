@@ -1,12 +1,13 @@
 {
-  "version": "3.3.0",
+  "version": "3.4.0",
   "author": "matejdro",
   "private": true,
   "dependencies": {
-	"pebble-activity-indicator-layer": "1.0.3"
+    "pebble-activity-indicator-layer": "1.0.3",
+    "pebble-rtltr": "^0.3.5"
   },
   "keywords": [
-    "pebble-app"
+    "pebble-app","pebble-rtltr","elbbeP"
   ],
   "pebble": {
     "sdkVersion": "3",
